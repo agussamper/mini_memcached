@@ -1,12 +1,11 @@
 #include "hashtable.h"
-#include "list.h"
-#include "functions_kv.h"
+#include "avl/avl.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 
 struct _HashTable {
-  List *listArr;
+  AVL *avl_arr;
   unsigned numElems;
   unsigned size;
   Cpy_key cpyK;
@@ -28,8 +27,11 @@ HashTable hashtable_create(
 
   HashTable table = malloc(sizeof(struct _HashTable));
   assert(table);
-  table->listArr = malloc(sizeof(List)*size);
-  assert(table->listArr);
+  table->avl_arr = malloc(sizeof(AVL)*size);
+  assert(table->avl_arr);
+  for(int i = 0; i < size; i++) {
+    table->avl_arr[i] = NULL;
+  }
   table->numElems = 0;
   table->size = size;
   table->cpyK = cpyK;
@@ -51,34 +53,35 @@ int hashtable_size(HashTable table) {
 
 void hashtable_destroy(HashTable table) {
   for(int i = 0 ; i < table->size; i++) {
-    if(table->listArr[i] != NULL) {
-      list_destroy(table->listArr[i],
+    if(NULL != table->avl_arr[i]) {
+      avl_destruir(table->avl_arr[i],
         table->destK, table->destV);
     }
   }
-  free(table->listArr);
+  free(table->avl_arr);
   free(table);
   return;
 }
 
 void hashtable_insert(HashTable table, void *key,
     void *value) {
-  /*
-  Deberíamos hacer la tabla los suficientemente grande
-  para que este caso no ocurra, es decir para que no
-  necesitemos hacer un rehash de la tabla
-  if (table->numElems*10/table->size >= 6) {
-    //TODO: resolver acá lo que sucede cuando el factor de carga es mayor a 0.6   
-  }
-  */
-  
+
   unsigned idx = table->hash(key) % table->size;
-  if(table->listArr[idx] == NULL) {
-    table->listArr[idx] = list_create();
+  if(NULL == table->avl_arr[idx]) {
+    table->avl_arr[idx] = avl_crear();
   }
-  while(list_add(table->listArr[idx], key, value,
-      table->cpyK, table->cpyV) == 0) {
+  while(avl_insertar(table->avl_arr[idx], key, value,
+      table->cpyK, table->cpyV, table->compK) == 0) {
     //TODO: desalojar un elemento
   }
   return;
+}
+
+void* hashtable_find(HashTable table, void *key) {
+  unsigned idx = table->hash(key) % table->size;
+  if(NULL != table->avl_arr[idx]) {
+    return avl_buscar(table->avl_arr[idx],
+      key, table->compK, table->cpyV); 
+  }
+  return NULL;
 }

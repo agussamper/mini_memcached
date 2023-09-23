@@ -41,9 +41,10 @@ void hashtable_insert(HashTable, void *key,
     void *value);
 
 /**
- * Retorna el valor que se relacione con la clave
- * dada o NULL si la clave buscada no se encuentra
- * en la tabla. 
+ * Retorna un puntero a una copia del valor 
+ * que se relacione con la clave
+ * dada o NULL si la clave buscada
+ * no se encuentra en la tabla. 
 */
 void* hashtable_find(HashTable table, void *key);
 
