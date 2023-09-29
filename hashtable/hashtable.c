@@ -3,6 +3,17 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <pthread.h>
+#include <unistd.h>
+
+long unsigned version;
+
+typedef struct Stats {
+  unsigned long put;
+  unsigned long get;
+  unsigned long del;
+  unsigned long keys;
+};
 
 struct _HashTable {
   AVL *avl_arr;
@@ -14,6 +25,7 @@ struct _HashTable {
   Destroy_key destK;
   Destroy_value destV;
   HashFunction hash;
+  pthread_mutex_t* mutex_arr; 
 };
 
 HashTable hashtable_create(
@@ -40,6 +52,17 @@ HashTable hashtable_create(
   table->destK = destK;
   table->destV = destV;
   table->hash = hash;
+
+  long number_of_processors = sysconf(_SC_NPROCESSORS_ONLN);
+  long size_mutex_arr = number_of_processors + 1;
+
+  table->mutex_arr = 
+    malloc(sizeof(pthread_mutex_t)*size_mutex_arr);
+
+  for(long i = 0; i < size_mutex_arr; i++) {
+    pthread_mutex_init((table->mutex_arr)+i, NULL); 
+  }
+
   return table;
 }
 
@@ -52,7 +75,7 @@ int hashtable_size(HashTable table) {
 }
 
 void hashtable_destroy(HashTable table) {
-  for(int i = 0 ; i < table->size; i++) {
+  for(int i = 0; i < table->size; i++) {
     if(NULL != table->avl_arr[i]) {
       avl_destruir(table->avl_arr[i],
         table->destK, table->destV);
@@ -70,13 +93,22 @@ void hashtable_insert(HashTable table, void *key,
   if(NULL == table->avl_arr[idx]) {
     table->avl_arr[idx] = avl_crear();
   }
+  int updated;
+  //TODO: Crear array para pasar argumentos
+  //TODO: version puede ser modificado por otros hilos mientras esta ejecutando insertar, solucionar
   while(avl_insertar(table->avl_arr[idx], key, value,
-      table->cpyK, table->cpyV, table->compK) == 0) {
+      table->cpyK, table->cpyV, table->compK,
+      table->destV, &updated, version+1) == 0) {
     //TODO: desalojar un elemento
+    if(updated == 1) {
+      //TODO: proteger con mutex
+      version += 1;
+    }
   }
   return;
 }
 
+//TODO: Modificar version cuando se hace find
 void* hashtable_find(HashTable table, void *key) {
   unsigned idx = table->hash(key) % table->size;
   if(NULL != table->avl_arr[idx]) {
@@ -84,4 +116,13 @@ void* hashtable_find(HashTable table, void *key) {
       key, table->compK, table->cpyV); 
   }
   return NULL;
+}
+
+void hashtable_delete(HashTable table, void *key) {
+  unsigned idx = table->hash(key) % table->size;
+  if(NULL != table->avl_arr[idx]) {
+    avl_eliminar((table->avl_arr[idx]), key,
+      table->compK, table->destK, table->destV,
+      table->cpyK, table->cpyV);
+  }
 }

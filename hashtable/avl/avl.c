@@ -11,11 +11,12 @@
  * un puntero al nodo raiz del subarbol derecho (der), y
  * un entero para representar la altura del arbol (altura)
  */
-typedef struct _AVL_Nodo {
+typedef struct _AVL_Nodo {  
   void* key;
   void* value;
-  struct _AVL_Nodo* izq, *der;
+  struct _AVL_Nodo* izq, *der;  
   int altura;
+  unsigned long version;
 } AVL_Nodo;
 
 /**
@@ -153,6 +154,7 @@ static AVL_Nodo* avl_nodo_crear(void* key,
   nuevoNodo->value = cpyV(value);
   nuevoNodo->izq = nuevoNodo->der = NULL;
   nuevoNodo->altura = 0;
+  nuevoNodo->version = 0;
   return nuevoNodo;
 }
 
@@ -160,15 +162,19 @@ static AVL_Nodo* avl_nodo_crear(void* key,
  * avl_insertar: Inserta un dato no repetido en el arbol, manteniendo la
  * propiedad de los arboles AVL.
  */
+//TODO: pasar las funciones en un arreglo
 static AVL_Nodo* avl_nodo_insertar(AVL_Nodo* raiz,
-    void* key, void *value, Cpy_key cpyK, 
-    Cpy_value cpyV, Compare_key compK,
-    AVL_Nodo* newNode) {
-  if (raiz == NULL) // insertamos el nuevo elemento
+    Cpy_key cpyK, Cpy_value cpyV,
+    Compare_key compK, AVL_Nodo* newNode,
+    int* updated, Destroy_key destK,
+    unsigned long version) {
+  if (raiz == NULL) { // insertamos el nuevo elemento
+    *updated = 0;
     return newNode;
-  else if (compK(key, raiz->key) < 0) { // el dato debe ir en el subarbol izq
+  }else if (compK(newNode->key, raiz->key) < 0) { // el dato debe ir en el subarbol izq
     raiz->izq = avl_nodo_insertar(raiz->izq,
-      key, value, cpyK, cpyV, compK, newNode);
+      cpyK, cpyV, compK, newNode, updated,
+      destK, version);
     // chequear balance
     if (avl_nodo_factor_balance(raiz) == -2) {
       // casos 1 o 2
@@ -179,9 +185,10 @@ static AVL_Nodo* avl_nodo_insertar(AVL_Nodo* raiz,
     raiz->altura = 1 + avl_nodo_max_altura_hijos(raiz);
     return raiz;
   }
-  else if (compK(key, raiz->key) > 0) { // el dato debe ir en el subarbol der
+  else if (compK(newNode->key, raiz->key) > 0) { // el dato debe ir en el subarbol der
     raiz->der = avl_nodo_insertar(raiz->der,
-      key, value, cpyK, cpyV, compK, newNode);
+      cpyK, cpyV, compK, newNode, updated,
+      destK, version);
     // chequear balance
     if (avl_nodo_factor_balance(raiz) == 2) {
       // casos 3 o 4
@@ -192,19 +199,31 @@ static AVL_Nodo* avl_nodo_insertar(AVL_Nodo* raiz,
     raiz->altura = 1 + avl_nodo_max_altura_hijos(raiz);
     return raiz;
   }
-  else // no agregar elementos repetidos
+  else // Modificar valor
+    *updated = 1;
+    raiz->version = version;
+    raiz->value = newNode->value; 
+    destK(newNode->key);
+    free(newNode);
     return raiz;
 }
 int avl_insertar(AVL arbol, void* key,
   void *value, Cpy_key cpyK, 
-  Cpy_value cpyV, Compare_key compK) {
+  Cpy_value cpyV, Compare_key compK,
+  Destroy_key destK, int *updated,
+  unsigned long version) {
   AVL_Nodo* newNode = avl_nodo_crear(key, value, cpyK, cpyV);
   if(newNode != NULL) {
+    int *updated;
+    *updated = 0;
     arbol->raiz = avl_nodo_insertar(
                   arbol->raiz,
-                  key, value, cpyK,
+                  cpyK,
                   cpyV, compK,
-                  newNode);
+                  newNode,
+                  updated,
+                  destK,
+                  version);
     return 1;
   } else {
     return 0;

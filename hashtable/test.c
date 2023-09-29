@@ -99,10 +99,18 @@ void test2() {
   }
   puts("Busquedas finalizadas");
 
-  hashtable_destroy(ht);
+  puts("eliminando elementos...");
+  for(int i = 0; i < 1000; i++) {
+    hashtable_delete(ht, keys+i);
+    assert(
+      hashtable_find(ht, (void*)(keys+i))
+      == NULL);
+  }
+  puts("elementos eliminados con exito");
 
+  hashtable_destroy(ht);  
   puts("test2: ok");
-} 
+}
 
 int main() {
   test1();

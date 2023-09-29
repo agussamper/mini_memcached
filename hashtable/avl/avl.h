@@ -31,9 +31,12 @@ void* avl_buscar(AVL, void *key,
  * Si la inserción fue exitosa devuelve 1, en
  * caso contrario devuelve 0.
  */
-int avl_insertar(AVL, void *key,
-  void* value, Cpy_key, Cpy_value,
-  Compare_key);
+int avl_insertar(AVL,
+  void* key, void* value,
+  Cpy_key, Cpy_value,
+  Compare_key, Destroy_key,
+  int *updated,
+  unsigned long version);
 
 /**
  * Retorna 1 si el arbol cumple la propiedad de los arboles AVL, y 0 en caso

@@ -11,7 +11,7 @@ typedef void (*Destroy_value)(void *value);
 typedef void *(*Cpy_key)(void *key);
 
 /** Retorna una copia fisica de la clave */
-typedef void *(*Cpy_value)(void *key);
+typedef void *(*Cpy_value)(void *value);
 
 /**
  * Compara las claves 
