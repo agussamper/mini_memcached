@@ -13,8 +13,7 @@ AVL avl_crear();
 /**
  * Destruye el arbol y sus datos.
  */
-void avl_destruir(AVL, Destroy_key,
-  Destroy_value);
+void avl_destruir(AVL, FUNC);
 
 /**
  * Retorna un puntero a una copia del valor
@@ -22,7 +21,7 @@ void avl_destruir(AVL, Destroy_key,
  * y NULL en caso contrario
  */
 void* avl_buscar(AVL, void *key,
-  Compare_key, Cpy_value);
+  FUNC);
 
 /**
  * Inserta si es posible un dato no repetido
@@ -33,23 +32,19 @@ void* avl_buscar(AVL, void *key,
  */
 int avl_insertar(AVL,
   void* key, void* value,
-  Cpy_key, Cpy_value,
-  Compare_key, Destroy_key,
   int *updated,
-  unsigned long version);
+  unsigned long version,
+  FUNC F);
 
 /**
  * Retorna 1 si el arbol cumple la propiedad de los arboles AVL, y 0 en caso
  * contrario.
  */
-int avl_validar(AVL, Compare_key);
+int avl_validar(AVL, FUNC F);
 
 /**
  * Elimina el elemento del arbol indicado por parametros
  */
-void avl_eliminar(AVL arbol, void* key,
-  Compare_key cmpK, Destroy_key destK,
-  Destroy_value destV, Cpy_key cpyK,
-  Cpy_value cpyV);
+void avl_eliminar(AVL arbol, void* key,FUNC F);
 
 #endif /* __AVL_H__*/

@@ -29,4 +29,13 @@ typedef int (*Compare_key)(void *key1, void *key2);
  */ //TODO: borrar si no es necesaria
 typedef int (*Compare_value)(void *value1, void *value2);
 
+typedef struct _FUNC *FUNC;
+
+void dstr_key(FUNC ,void* );
+void dstr_value(FUNC ,void* );
+void* copy_k(FUNC ,void* );
+void* copy_v(FUNC ,void* );
+int comp_k(FUNC ,void*,void* );
+int comp_v(FUNC ,void*,void*);
+
 #endif
