@@ -26,16 +26,18 @@ typedef int (*Compare_key)(void *key1, void *key2);
  * Retorna un entero negativo si value1 < value2,
  * 0 si son iguales y un entero
  * positivo si value1 > value2
- */ //TODO: borrar si no es necesaria
+ */
 typedef int (*Compare_value)(void *value1, void *value2);
 
-typedef struct _FUNC *FUNC;
+struct _FUNC{
+  Destroy_key destK;
+  Destroy_value destV;
+  Cpy_key cpyK;
+  Cpy_value cpyV;
+  Compare_key compK;
+  Compare_value compV;
+};
 
-void dstr_key(FUNC ,void* );
-void dstr_value(FUNC ,void* );
-void* copy_k(FUNC ,void* );
-void* copy_v(FUNC ,void* );
-int comp_k(FUNC ,void*,void* );
-int comp_v(FUNC ,void*,void*);
+typedef struct _FUNC *FUNC;
 
 #endif
