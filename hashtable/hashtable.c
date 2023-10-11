@@ -21,7 +21,8 @@ struct _HashTable {
   unsigned size;
   FUNC funcs;
   HashFunction hash;
-  pthread_mutex_t* mutex_arr; 
+  pthread_mutex_t* mutex_arr;
+  int size_mutex_arr; 
 };
 
 HashTable hashtable_create(
@@ -53,7 +54,7 @@ HashTable hashtable_create(
 
   long number_of_processors = sysconf(_SC_NPROCESSORS_ONLN);
   long size_mutex_arr = number_of_processors + 1;
-
+  table->size_mutex_arr = size_mutex_arr;
   table->mutex_arr = 
     malloc(sizeof(pthread_mutex_t)*size_mutex_arr);
 
@@ -81,6 +82,9 @@ void hashtable_destroy(HashTable table) {
   }
   free(table->avl_arr);
   free(table->funcs);
+  for(int i = 0; i < table->size_mutex_arr; i++) {
+    pthread_mutex_destroy(table->mutex_arr+i);
+  }
   free(table->mutex_arr);
   free(table);
   return;
@@ -90,12 +94,13 @@ void hashtable_insert(HashTable table, void *key,
     void *value) {
 
   unsigned idx = table->hash(key) % table->size;
+
+  pthread_mutex_lock(idx%table->size_mutex_arr);
   if(NULL == table->avl_arr[idx]) {
     table->avl_arr[idx] = avl_crear();
   }
-  int updated;
-  //TODO: Crear array para pasar argumentos
-  //TODO: version puede ser modificado por otros hilos mientras esta ejecutando insertar, solucionar
+  int updated;  
+  //TODO: No basta el lock del arbol para el valor version
   while(avl_insertar(table->avl_arr[idx],
       key, value, &updated, 
       version+1, table->funcs) == 0) {
@@ -103,9 +108,9 @@ void hashtable_insert(HashTable table, void *key,
     if(updated == 1) {
       //TODO: proteger con mutex
       version += 1;
-    }
+    }    
   }
-  return;
+  pthread_mutex_unlock(idx%table->size_mutex_arr);
 }
 
 //TODO: Modificar version cuando se hace find
