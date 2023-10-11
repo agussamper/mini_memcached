@@ -95,7 +95,8 @@ void hashtable_insert(HashTable table, void *key,
 
   unsigned idx = table->hash(key) % table->size;
 
-  pthread_mutex_lock(idx%table->size_mutex_arr);
+  unsigned idx_m = idx%(table->size_mutex_arr);
+  pthread_mutex_lock(table->mutex_arr+idx_m);
   if(NULL == table->avl_arr[idx]) {
     table->avl_arr[idx] = avl_crear();
   }
@@ -110,7 +111,7 @@ void hashtable_insert(HashTable table, void *key,
       version += 1;
     }    
   }
-  pthread_mutex_unlock(idx%table->size_mutex_arr);
+  pthread_mutex_unlock(table->mutex_arr+idx_m);
 }
 
 //TODO: Modificar version cuando se hace find
