@@ -24,18 +24,20 @@ int list_empty(List list);
  * por argumento a la lista, si la clave
  * ya se encuentra en la lista sobreescribe
  * el valor asociado a la misma. 
- * Devuelve 1 si agregó el elemento
- * y 0 si no lo pudo agregar 
+ * Devuelve 1 si agregó el elemento o se 
+ * sobreescribió y NULL si no se pudo agregar.
+ * Si se sobreescribe o se agrega, el nodo
+ * modificado o agregado se coloca en el tope
+ * de la lista.
 */
-//TODO: Me conviene devolver el nodo
 int list_add(List* list,
   char* key, unsigned klen,
   char* value, unsigned vlen);
 
 /**
- * Elimina el último elemento ingresado a la lista
+ * Elimina list de la lista
 */
-int list_remove(List* list);
+void list_remove(List list);
 
 /**
  * Borra de la lista el elemento que tiene
@@ -52,6 +54,13 @@ int list_remove_key(List* list, char* key);
  * devuelve NULL 
 */
 void* list_getValue(List* list, char* key);
+
+/**
+ * Devuelve el puntero al nodo de la lista
+ * que tiene a key. Si no lo encuentra
+ * devuelve NULL
+*/
+List list_getByKey(List* list, char* key);
 
 /**
  * Devuelve un puntero al nodo de la

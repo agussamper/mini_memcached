@@ -1,6 +1,5 @@
 #include "list.h"
 #include "cache.h"
-#include "codes.h"
 
 #include <evict.h>
 #include <pthread.h>
@@ -14,6 +13,15 @@ struct _NodeEvict {
   List list_ptr;
 };
 
+/**
+ * Si desde lru hacemos next vamos al siguiente
+ * elemento más recientemente usado
+ * Si desde mru hacemos prev vamos al previo
+ * elemento menos recientemente usado
+ * Como la estructura es circular, si desde mru
+ * hacemos next tenemos lru y si desde lru
+ * hacemos prev tenemos mru
+*/
 struct _Evict {
   NodeEvict mru;
   NodeEvict lru;
@@ -29,11 +37,11 @@ void evict_init(Evict* evict_ptr) {
   assert(!pthread_mutex_init(&(evict->mutex), NULL));
 }
 
-int evict_add(Evict evict, List list) {
+int evict_add(Evict evict, const List list) {
   NodeEvict node = 
     allocate_mem(sizeof(struct _NodeEvict));
   if(!node) {
-    return NOMEM;
+    return 0;
   }
   node->list_ptr = list;
   pthread_mutex_lock(&evict->mutex);
@@ -59,52 +67,31 @@ int evict_add(Evict evict, List list) {
   return 1;
 }
 
-/*void evict_remove(Evict evict, List list) {
+void evict_remove(Evict evict, const List list) {
   pthread_mutex_lock(&evict->mutex);
   if(evict->mru == NULL) {
     pthread_mutex_unlock(&evict->mutex);
     return;
   }
   if(evict->mru == evict->lru) {
-    free(evict->mru);
-    free(evict->lru);
     evict->mru = NULL;
     evict->lru = NULL;
   } else {
-    if(evict->mru->list_ptr == list) {
-      evict->mru = evict->mru->prevEntry;
-      evict->lru->prevEntry = evict->mru; 
-    }
-    else if(evict->lru == node) {
-      evict->lru = evict->lru->nextEntry;
-      evict->mru->nextEntry = evict->lru;
-    }
-    node->prevEntry->nextEntry = node->nextEntry;
-    node->nextEntry->prevEntry = node->prevEntry;    
+    NodeEvict node = list_getNodeEvict(list);
+    node->prev->next = node->next;
+    node->next->prev = node->prev;
   }
-  pthread_mutex_unlock(&evict->mutex);  
-}*/
+  pthread_mutex_unlock(&evict->mutex);
+}
 
-void evict_remove(Evict evict, List list) {
+void evict_dismiss(Cache cache, Evict evict) {
   pthread_mutex_lock(&evict->mutex);
-  if(evict->mru == NULL) {
-    pthread_mutex_unlock(&evict->mutex);
-    return;
+  NodeEvict node = evict->lru;
+  for(int i = 0; node && i < 10;
+      node = node->next, i++) {
+    //TODO: crear funcion en cache.c que use
+    // try_lock para lockear un conjunto de listas
+    // y eliminar node->list_ptr
   }
-  if(evict->mru == evict->lru) {
-    free(evict->mru);
-    free(evict->lru);
-    evict->mru = NULL;
-    evict->lru = NULL;
-  } else {
-    if(evict->mru->list_ptr == list) {
-      evict->mru = evict->mru->prev;
-      evict->lru->prev = evict->mru; 
-    }
-    else if(evict->lru == node) {
-      evict->lru = evict->lru->nextEntry;
-      evict->mru->nextEntry = evict->lru;
-    }
-  }
-  pthread_mutex_unlock(&evict->mutex);  
+  pthread_mutex_unlock(&evict->mutex);
 }

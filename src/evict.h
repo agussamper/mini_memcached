@@ -11,21 +11,20 @@ void evict_init(Evict* evict_ptr);
 
 /**
  * Agrega list a la estructura evict
- * Devuelve 1 si pudo agregar y NOMEM
- * si no hay memoria para a agregar el
- * elemento 
+ * Devuelve 1 si pudo agregar y 0
+ * en caso contrario
 */
-int evict_add(Evict evict, List list);
+int evict_add(Evict evict, const List list);
 
 /**
  * Elimina list de la estructura
 */
-void evict_remove(Evict evict, List list);
+void evict_remove(Evict evict, const List list);
 
 /**
- * Elimina el elemento menos usado de
- * la estructura evict 
+ * Elimina a lo sumo los 10 elementos menos
+ * usados de la cache 
 */
-void evict_dismiss(Evict evict);
+void evict_dismiss(Cache cache, Evict evict);
 
 #endif

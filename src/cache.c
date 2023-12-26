@@ -18,8 +18,8 @@ typedef struct Stats {
 
 struct _Cache {
   List *listArr;
-  unsigned numElems;
-  unsigned size;
+  unsigned numElems; //Cantidad de elementos ingresados a la cache 
+  unsigned size; //Número de slots para listas
   Evict* evict;
   pthread_mutex_t* mutex_arr;
   unsigned size_mutex_arr; 
@@ -63,45 +63,56 @@ int cache_size(Cache cache) {
 
 Evict cache_getEvict(Cache cache) {
   return cache->evict;
-} 
+}
 
-void cache_insert(Cache table, 
-    char *key, unsigned key_length, 
-    char *value, unsigned value_length) {
+pthread_mutex_t* get_mutex_by_key(
+  Cache cache, unsigned idx, unsigned key 
+) {  
+  unsigned idx_mutex = idx%(cache->size_mutex_arr);
+  return cache->mutex_arr+idx_mutex;
+}
 
-  unsigned idx = table->hash(key) % table->size;
-  unsigned idx_mutex = idx%(table->size_mutex_arr);
-  List* listSelected = table->listArr+idx;
-  pthread_mutex_lock(table->mutex_arr+idx_mutex);
-  if(table->listArr[idx] == NULL) {
-    table->listArr[idx] = list_create();
+void cache_insert(Cache cache, 
+  char *key, unsigned key_length, 
+  char *value, unsigned value_length
+) {
+  unsigned idx = cache->hash(key) % cache->size;
+  pthread_mutex_t* mutex = 
+    get_mutex_by_key(cache, idx, key);
+  List* list = cache->listArr+idx;
+  pthread_mutex_lock(mutex);
+  if(cache->listArr[idx] == NULL) {
+    cache->listArr[idx] = list_create();
   }
-  int res = list_add(listSelected, key, value); //TODO: hacer que devuela el nodo donde se guardo en la lista
+  int res = list_add(list,
+    key, key_length, value, value_length);
   if(0 == res) {
     return NOMEM;
   }
-  res = evict_add(table->evict);
+  res = evict_add(cache->evict, *list);
   if(0 == res) {
-    list_remove(listSelected);
+    list_remove(*list);
     return NOMEM;
   }
-  pthread_mutex_unlock(table->mutex_arr+idx_mutex);
-}
-/*
-//TODO: Modificar version cuando se hace find
-void* hashtable_find(HashTable table, void *key) {
-  unsigned idx = table->hash(key) % table->size;
-  if(NULL != table->avl_arr[idx]) {
-    return avl_buscar(table->avl_arr[idx],
-      key, table->funcs); 
-  }
-  return NULL;
+  pthread_mutex_unlock(mutex);
 }
 
-void hashtable_delete(HashTable table, void *key) {
-  unsigned idx = table->hash(key) % table->size;
-  if(NULL != table->avl_arr[idx]) {
-    avl_eliminar((table->avl_arr[idx]), key,
-      table->funcs);
+void cache_delete(Cache cache, char* key) {
+  unsigned idx = cache->hash(key) % cache->size;
+  pthread_mutex_t* mutex = 
+    get_mutex_by_key(cache, idx, key);
+  List* list = cache->listArr+idx;
+  pthread_mutex_lock(mutex);
+  if(list_empty(*list)) {
+    pthread_mutex_unlock(mutex);
+    return;  
   }
-}*/
+  List ptr = list_getByKey(list, key);
+  if(!ptr) {
+    pthread_mutex_unlock(mutex);
+    return;
+  }
+  evict_remove(cache->evict, ptr);
+  list_remove(ptr);
+  pthread_mutex_unlock(mutex);
+}

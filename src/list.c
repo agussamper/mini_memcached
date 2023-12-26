@@ -1,5 +1,7 @@
 #include "list.h"
 #include "evict.h"
+#include "malloc_interface.h"
+#include "codes.h"
 
 #include <stdlib.h>
 #include <assert.h>
@@ -10,7 +12,7 @@ typedef struct Node {
   char* key;
   char* value;
   struct Node* next;
-  struct Node* prev; //TODO: hacer cambios para que funcione cone este nodo
+  struct Node* prev;
 
   /**
    * Puntero al nodo que apunta a este nodo
@@ -63,33 +65,35 @@ int list_add(List* list,
     char* key, unsigned klen,
     char* value, unsigned vlen) {
   assert(list != NULL);
-
   Node* node = *list;
+  char* newValue = allocate_mem(sizeof(char)*vlen);
+  if(!newValue) {
+    return NOMEM;
+  }
+  strcpy(newValue, value);
   if(isInList(&node, key)) {
-    void* newValue = cpyV(value);
-    if(NULL == newValue) {
-      return 0;  
-    }
-    destroyValue(node->value);
+    free(node->value);    
     node->value = newValue;
+    node->prev->next = node->next;
+    node->next->prev = node->prev;
+    Node *top = list;
+    top->prev = node;
+    node->next = top;
+    node->prev = NULL;
     return 1;
   }
 
-  Node* newNode = malloc(sizeof(Node));
-  if(newNode == NULL) {
+  Node* newNode = allocate_mem(sizeof(Node));
+  char* newKey = allocate_mem(sizeof(char)*vlen);
+  if(!newNode || !newKey) {
     return 0;
   }
   Node* top = *list;
-  newNode->next = top; 
+  newNode->next = top;
+  top->prev = newNode;
+  newNode->prev = NULL;
   
-  void* newKey = cpyK(key);
-  if(NULL == newKey) {
-    return 0;
-  }
-  void* newValue = cpyV(value);
-  if(NULL == newValue) {
-    return 0;  
-  }
+  strcpy(newKey, key);
   newNode->key = newKey;
   newNode->value = newValue;
 
@@ -97,75 +101,69 @@ int list_add(List* list,
   return 1;
 }
 
-/**
- * Remueve node de la estructura de desalojo
-*/
-void evict_remove(Evict* evict, Node* node) {
-  pthread_mutex_lock(&evict->mutex_evict);
-  if(evict->newest == evict->oldest) {
-      evict->newest = NULL;
-      evict->oldest = NULL;
-  } else {
-    if(evict->newest == node) {
-      evict->newest = evict->newest->prevEntry;
-      evict->oldest->prevEntry = evict->newest; 
-    }
-    else if(evict->oldest == node) {
-      evict->oldest = evict->oldest->nextEntry;
-      evict->newest->nextEntry = evict->oldest;
-    }
-    node->prevEntry->nextEntry = node->nextEntry;
-    node->nextEntry->prevEntry = node->prevEntry;    
-  }
-  pthread_mutex_unlock(&evict->mutex_evict);
-}
-
-int list_remove_at(List* list,
+int list_remove_key(List* list,
     char* key) {
   Node* node = *list;
   if(node == NULL) {
     return 0;
   }
-  if(0 == compareK(node->key, key)) {
-    destK(node->key);
-    destV(node->value);    
-    evict_remove(evict, node);
-    *list = node->next;
-    free(node);    
-    return 1;
+  for(; strcmp(node->key, key) != 0 && node != NULL;
+      node = node->next);
+  
+  if(!node) {
+    return 0;
   }
-  while(node->next != NULL) {
-    if(0 == compareK(node->next->key, key)) {
-      destK(node->next->key);
-      destV(node->next->value);
-      evict_remove(evict, node->next);
-      Node* toDelete = node->next;
-      node->next = node->next->next;
-      free(toDelete);            
-      return 1;
-    }
-    node = node->next;
-  }
-  if(0 == compareK(node->key, key)) {
-    destK(node->key);
-    destV(node->value);
-    evict_remove(evict, node);
-    free(node);
-    return 1;
-  }
-  return 0;
+
+  free(node->key);
+  free(node->value);
+  free(node->evict);
+  node->prev->next = node->next;
+  node->next->prev = node->prev;
+  free(node);
+
+  return 1;
 }
 
-void *list_getValue(List* list,
+void list_remove(List list) {
+  if(!list) {
+    return;
+  }
+  Node* node = list;
+  if(node->prev != NULL) {
+    node->prev->next = node->next;
+  }
+  if(node->next != NULL) {
+    node->next->prev = node->prev;
+  }
+  free(node->key);
+  free(node->value);
+  free(node->evict);
+}
+
+void* list_getValue(List* list,
     char* key) {
   Node* node = *list;
-  while(node != NULL) {
-    if(0 == cmpK(key, node->key)) {
-      void* val = cpyValue(node->value);
-      evict_update(evict, node);
+  for(; node != NULL; node->next) {
+    if(0 == strcmp(key, node->key)) {
+      char* val =
+        allocate_mem(strlen(key)*sizeof(char));
       return val;
     }
-    node = node->next;
   }
   return NULL;
+}
+
+List list_getByKey(List* list,
+    char* key) {
+  Node* node = *list;
+  for(; node != NULL; node->next) {
+    if(0 == strcmp(key, node->key)) {      
+      return node;
+    }
+  }
+  return NULL;
+}
+
+NodeEvict list_getNodeEvict(List list) {
+  return list->evict;
 }
