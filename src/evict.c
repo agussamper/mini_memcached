@@ -109,9 +109,20 @@ void evict_dismiss(Cache cache, Evict evict) {
   NodeEvict node = evict->lru;
   for(int i = 0; node && i < 10;
       node = node->next, i++) {
-    //TODO: crear funcion en cache.c que use
-    // try_lock para lockear un conjunto de listas
-    // y eliminar node->list_ptr
+    pthread_mutex_t* mutex = 
+      cache_trylock(cache, node->list_ptr);
+    if(!mutex) {
+      continue;
+    }
+    if(evict->mru == evict->lru) {
+      evict->mru = NULL;
+      evict->lru = NULL;
+    } else {
+      node->prev->next = node->next;
+      node->next->prev = node->prev;
+    }
+    list_remove(node->list_ptr);
+    pthread_mutex_unlock(mutex);
   }
   pthread_mutex_unlock(&evict->mutex);
 }

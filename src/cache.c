@@ -65,9 +65,20 @@ Evict cache_getEvict(Cache cache) {
   return cache->evict;
 }
 
+/**
+ * Devuelve el indice de la cache
+ * correspondiente a key.
+*/
+unsigned get_idx(Cache cache, char* key) {
+  return cache->hash(key) % cache->size;
+}
+
+/**
+ * Devuelve el mutex de la cache
+ * correspondiente a idx.
+*/
 pthread_mutex_t* get_mutex_by_key(
-  Cache cache, unsigned idx, unsigned key 
-) {  
+  Cache cache, unsigned idx) {  
   unsigned idx_mutex = idx%(cache->size_mutex_arr);
   return cache->mutex_arr+idx_mutex;
 }
@@ -76,9 +87,9 @@ void cache_insert(Cache cache,
   char *key, unsigned key_length, 
   char *value, unsigned value_length
 ) {
-  unsigned idx = cache->hash(key) % cache->size;
+  unsigned idx = get_idx(cache, key);
   pthread_mutex_t* mutex = 
-    get_mutex_by_key(cache, idx, key);
+    get_mutex_by_key(cache, idx);
   List* list = cache->listArr+idx;
   pthread_mutex_lock(mutex);
   if(cache->listArr[idx] == NULL) {
@@ -107,9 +118,9 @@ void cache_insert(Cache cache,
 }
 
 void cache_delete(Cache cache, char* key) {
-  unsigned idx = cache->hash(key) % cache->size;
+  unsigned idx = get_idx(cache, key);
   pthread_mutex_t* mutex = 
-    get_mutex_by_key(cache, idx, key);
+    get_mutex_by_key(cache, idx);
   List* list = cache->listArr+idx;
   pthread_mutex_lock(mutex);
   if(list_empty(*list)) {
@@ -126,6 +137,14 @@ void cache_delete(Cache cache, char* key) {
   pthread_mutex_unlock(mutex);
 }
 
-void cache_try_delete(Cache cache, List list) {
-
+pthread_mutex_t* cache_trylock(
+    Cache cache, List list) {
+  char* key = list_getKey(list);
+  unsigned idx = get_idx(cache, key);
+  pthread_mutex_t* mutex = 
+    get_mutex_by_key(cache, idx);
+  if(0 == pthread_mutex_trylock(mutex)) {
+    return mutex;
+  }
+  return NULL;
 }

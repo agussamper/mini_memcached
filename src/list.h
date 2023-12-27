@@ -69,4 +69,10 @@ List list_getByKey(List* list, char* key);
 */
 NodeEvict list_getEvictNode(List list);
 
+/**
+ * Dada un puntero a nodo de la lista
+ * devuelve su clave.
+*/
+char* list_getKey(List list);
+
 #endif

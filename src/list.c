@@ -167,3 +167,7 @@ List list_getByKey(List* list,
 NodeEvict list_getEvictNode(List list) {
   return list->evict;
 }
+
+char* list_getKey(List list) {
+  return list->key;
+}

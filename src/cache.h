@@ -50,4 +50,13 @@ void* cache_find(Cache cache, char* key);
  */
 void cache_delete(Cache cache, char* key);
 
+/**
+ * Intenta tomar el mutex correspondiente a la
+ * clave que contenga list.
+ * Retorna un puntero al mutex si el mutex
+ * es tomado, en caso contrario retorna NULL
+*/
+pthread_mutex_t* cache_trylock(
+    Cache cache, List list);
+
 #endif
