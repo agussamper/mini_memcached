@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <malloc_interface.h>
+#include <assert.h>
 
 struct _NodeEvict {
   struct _NodeEvict* next;
@@ -67,6 +68,25 @@ int evict_add(Evict evict, const List list) {
   return 1;
 }
 
+void evict_update(Evict evict, List list) {
+  assert(list);
+  NodeEvict node = list_getEvictNode(list);
+  assert(node);
+  pthread_mutex_lock(&evict->mutex);  
+  if(node == evict->mru) {
+    pthread_mutex_unlock(&evict->mutex);
+    return;
+  }
+  node->prev->next = node->next;
+  node->next->prev = node->prev;
+  node->prev = evict->mru;
+  node->next = evict->lru;
+  evict->mru->next = node;
+  evict->lru->prev = node;
+  evict->mru = node;
+  pthread_mutex_unlock(&evict->mutex);
+}
+
 void evict_remove(Evict evict, const List list) {
   pthread_mutex_lock(&evict->mutex);
   if(evict->mru == NULL) {
@@ -77,7 +97,7 @@ void evict_remove(Evict evict, const List list) {
     evict->mru = NULL;
     evict->lru = NULL;
   } else {
-    NodeEvict node = list_getNodeEvict(list);
+    NodeEvict node = list_getEvictNode(list);
     node->prev->next = node->next;
     node->next->prev = node->prev;
   }

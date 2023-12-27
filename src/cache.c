@@ -86,13 +86,22 @@ void cache_insert(Cache cache,
   }
   int res = list_add(list,
     key, key_length, value, value_length);
-  if(0 == res) {
+  switch (res) {
+  case 0:
+    pthread_mutex_unlock(mutex);
     return NOMEM;
-  }
-  res = evict_add(cache->evict, *list);
-  if(0 == res) {
-    list_remove(*list);
-    return NOMEM;
+    break;
+  case 1:
+    res = evict_add(cache->evict, list);
+    if(0 == res) {
+      list_remove(*list);
+      pthread_mutex_unlock(mutex);
+      return NOMEM;
+    }
+    break;
+  default:
+    evict_update(cache->evict, list);
+    break;
   }
   pthread_mutex_unlock(mutex);
 }
@@ -115,4 +124,8 @@ void cache_delete(Cache cache, char* key) {
   evict_remove(cache->evict, ptr);
   list_remove(ptr);
   pthread_mutex_unlock(mutex);
+}
+
+void cache_try_delete(Cache cache, List list) {
+
 }

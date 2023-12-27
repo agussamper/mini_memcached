@@ -80,7 +80,7 @@ int list_add(List* list,
     top->prev = node;
     node->next = top;
     node->prev = NULL;
-    return 1;
+    return 2;
   }
 
   Node* newNode = allocate_mem(sizeof(Node));
@@ -164,6 +164,6 @@ List list_getByKey(List* list,
   return NULL;
 }
 
-NodeEvict list_getNodeEvict(List list) {
+NodeEvict list_getEvictNode(List list) {
   return list->evict;
 }

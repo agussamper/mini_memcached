@@ -15,6 +15,4 @@
 */
 void* allocate_mem(size_t size);
 
-void dealloc_mem();
-
 #endif

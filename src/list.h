@@ -24,8 +24,8 @@ int list_empty(List list);
  * por argumento a la lista, si la clave
  * ya se encuentra en la lista sobreescribe
  * el valor asociado a la misma. 
- * Devuelve 1 si agregó el elemento o se 
- * sobreescribió y NULL si no se pudo agregar.
+ * Devuelve 1 si agregó el elemento, 2 si
+ * se sobreesceibió y 0 si no se pudo agregar.
  * Si se sobreescribe o se agrega, el nodo
  * modificado o agregado se coloca en el tope
  * de la lista.
@@ -67,6 +67,6 @@ List list_getByKey(List* list, char* key);
  * estructura evict donde se encuentra
  * el puntero a list 
 */
-NodeEvict list_getNodeEvict(List list);
+NodeEvict list_getEvictNode(List list);
 
 #endif

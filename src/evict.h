@@ -17,6 +17,12 @@ void evict_init(Evict* evict_ptr);
 int evict_add(Evict evict, const List list);
 
 /**
+ * Dada un nodo de la lista que ya se encuentra
+ * en evict, lo mueve y lo coloca como mru
+*/
+void evict_update(Evict evict, const List list);
+
+/**
  * Elimina list de la estructura
 */
 void evict_remove(Evict evict, const List list);
