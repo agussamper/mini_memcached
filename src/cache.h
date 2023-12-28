@@ -47,8 +47,10 @@ void* cache_find(Cache cache, char* key);
 /**
  * Elimina el dato de la cache que coincida
  * con la clave dada.
+ * Si lo elimina con éxito retorna 1
+ * Si no encuentra key en la cache retorna 0
  */
-void cache_delete(Cache cache, char* key);
+int cache_delete(Cache cache, char* key);
 
 /**
  * Intenta tomar el mutex correspondiente a la

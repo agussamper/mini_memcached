@@ -116,7 +116,7 @@ void cache_insert(Cache cache,
   pthread_mutex_unlock(mutex);
 }
 
-void cache_delete(Cache cache, char* key) {
+int cache_delete(Cache cache, char* key) {
   stats_delsInc(cache->stats);
   unsigned idx = get_idx(cache, key);
   pthread_mutex_t* mutex = 
@@ -125,16 +125,17 @@ void cache_delete(Cache cache, char* key) {
   pthread_mutex_lock(mutex);
   if(list_empty(*list)) {
     pthread_mutex_unlock(mutex);
-    return;  
+    return 0;  
   }
   List ptr = list_getByKey(list, key);
   if(!ptr) {
     pthread_mutex_unlock(mutex);
-    return;
+    return 0;
   }
   evict_remove(cache->evict, ptr);
   list_remove(ptr);
   pthread_mutex_unlock(mutex);
+  return 1;
 }
 
 pthread_mutex_t* cache_trylock(
