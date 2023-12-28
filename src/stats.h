@@ -35,6 +35,12 @@ void stats_delsInc(Stats stats);
 void stats_keysInc(Stats stats);
 
 /**
+ * Decrementa en uno el campo keys de
+ * stats
+*/
+void stats_keysDec(Stats stats);
+
+/**
  * Devuelve un string con las
  * estadísticas
 */

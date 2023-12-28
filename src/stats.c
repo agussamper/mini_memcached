@@ -49,6 +49,12 @@ void stats_keysInc(Stats stats) {
   pthread_mutex_unlock(&stats->mutex);
 }
 
+void stats_keysDec(Stats stats) {
+  pthread_mutex_lock(&stats->mutex);
+  stats->keys -= 1;
+  pthread_mutex_unlock(&stats->mutex);
+}
+
 char* stats_show(Stats stats) {
   pthread_mutex_lock(&stats->mutex);
   char* statsinf = allocate_mem(sizeof(char)*200);

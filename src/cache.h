@@ -2,6 +2,7 @@
 #define __CACHE_H__
 
 #include "evict.h"
+#include "stats.h"
 
 // Funcion hash
 typedef unsigned (*HashFunction)(void* data);
@@ -60,5 +61,10 @@ int cache_delete(Cache cache, char* key);
 */
 pthread_mutex_t* cache_trylock(
     Cache cache, List list);
+
+/**
+ * Devuelve la estructura stats de la cache
+*/
+Stats cache_getStats(Cache cache);
 
 #endif

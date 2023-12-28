@@ -1,7 +1,6 @@
 #include "cache.h"
 #include "codes.h"
 #include "list.h"
-#include "stats.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -12,7 +11,6 @@
 
 struct _Cache {
   List *listArr;
-  unsigned numElems; //Cantidad de elementos ingresados a la cache 
   unsigned size; //Número de slots para listas
   Evict* evict;
   pthread_mutex_t* mutex_arr;
@@ -43,17 +41,12 @@ Cache cache_create(
     pthread_mutex_init((cache->mutex_arr)+i, NULL); 
   }
 
-  cache->numElems = 0;
   cache->size = size;
   cache->hash = hash;
 
   cache->stats = stats_init();
 
   return cache;
-}
-
-int cache_nelems(Cache cache) {
-  return cache->numElems;
 }
 
 int cache_size(Cache cache) {
@@ -109,6 +102,7 @@ void cache_insert(Cache cache,
       pthread_mutex_unlock(mutex);
       return NOMEM;
     }
+    stats_keysInc(cache->stats);
     break;
   default:
     evict_update(cache->evict, list);
@@ -147,6 +141,7 @@ int cache_delete(Cache cache, char* key) {
   }
   evict_remove(cache->evict, ptr);
   list_remove(ptr);
+  stats_keysDec(cache->stats);
   pthread_mutex_unlock(mutex);
   return 1;
 }
@@ -161,4 +156,8 @@ pthread_mutex_t* cache_trylock(
     return mutex;
   }
   return NULL;
+}
+
+Stats cache_getStats(Cache cache) {
+  return cache->stats;
 }

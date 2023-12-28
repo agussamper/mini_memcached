@@ -122,6 +122,7 @@ void evict_dismiss(Cache cache, Evict evict) {
       node->next->prev = node->prev;
     }
     list_remove(node->list_ptr);
+    stats_keysDec(cache_getStats(cache));
     pthread_mutex_unlock(mutex);
   }
   pthread_mutex_unlock(&evict->mutex);
