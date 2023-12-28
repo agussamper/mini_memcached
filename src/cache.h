@@ -42,7 +42,7 @@ void cache_insert(Cache table,
  * dada o NULL si la clave buscada
  * no se encuentra en la cache. 
 */
-void* cache_find(Cache cache, char* key);
+char* cache_get(Cache cache, char* key);
 
 /**
  * Elimina el dato de la cache que coincida

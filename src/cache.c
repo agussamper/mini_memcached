@@ -32,7 +32,8 @@ Cache cache_create(
 
   evict_init(&(cache->evict));
 
-  long number_of_processors = sysconf(_SC_NPROCESSORS_ONLN);
+  long number_of_processors =
+    sysconf(_SC_NPROCESSORS_ONLN);
   long size_mutex_arr = number_of_processors + 1;
   cache->size_mutex_arr = size_mutex_arr;
   cache->mutex_arr = 
@@ -114,6 +115,18 @@ void cache_insert(Cache cache,
     break;
   }
   pthread_mutex_unlock(mutex);
+}
+
+char* cache_get(Cache cache, char* key) {
+  stats_getsInc(cache->stats);
+  unsigned idx = get_idx(cache, key);
+  pthread_mutex_t* mutex = 
+    get_mutex_by_key(cache, idx);
+  List* list = cache->listArr+idx;
+  pthread_mutex_lock(mutex);
+  char* value = list_getByKey(list, key);
+  pthread_mutex_unlock(mutex);
+  return value;
 }
 
 int cache_delete(Cache cache, char* key) {
