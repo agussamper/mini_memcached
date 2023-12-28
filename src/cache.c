@@ -1,6 +1,7 @@
 #include "cache.h"
 #include "codes.h"
 #include "list.h"
+#include "stats.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -8,13 +9,6 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <pthread.h>
-
-typedef struct Stats {
-  unsigned long put;
-  unsigned long get;
-  unsigned long del;
-  unsigned long keys;
-} Stats;
 
 struct _Cache {
   List *listArr;
@@ -24,6 +18,7 @@ struct _Cache {
   pthread_mutex_t* mutex_arr;
   unsigned size_mutex_arr; 
   HashFunction hash;
+  Stats stats;
 };
 
 Cache cache_create(
@@ -50,6 +45,9 @@ Cache cache_create(
   cache->numElems = 0;
   cache->size = size;
   cache->hash = hash;
+
+  cache->stats = stats_init();
+
   return cache;
 }
 
@@ -87,6 +85,7 @@ void cache_insert(Cache cache,
   char *key, unsigned key_length, 
   char *value, unsigned value_length
 ) {
+  stats_putsInc(cache->stats);
   unsigned idx = get_idx(cache, key);
   pthread_mutex_t* mutex = 
     get_mutex_by_key(cache, idx);
@@ -118,6 +117,7 @@ void cache_insert(Cache cache,
 }
 
 void cache_delete(Cache cache, char* key) {
+  stats_delsInc(cache->stats);
   unsigned idx = get_idx(cache, key);
   pthread_mutex_t* mutex = 
     get_mutex_by_key(cache, idx);
