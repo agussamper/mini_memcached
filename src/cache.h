@@ -5,7 +5,7 @@
 #include "stats.h"
 
 // Funcion hash
-typedef unsigned (*HashFunction)(void* data);
+typedef unsigned (*HashFunction)(const char* data);
 
 typedef struct _Cache *Cache;
 
@@ -24,16 +24,13 @@ int cache_nelems(Cache cache);
 int cache_size(Cache cache);
 
 /**
- * Devuelve la estructura evict de la cache
-*/
-Evict cache_getEvict(Cache cache);
-
-/**
  * Inserta la clave y el valor en la cache,
  * si la clave ya se encontraba, reemplaza
  * el valor por el valor pasado por parametro.
+ * Si pude insertar retorna 1, en caso
+ * contrario 0.
  */
-void cache_insert(Cache table, 
+int cache_insert(Cache table, 
     char *key, unsigned key_length, 
     char *value, unsigned value_length);
 
@@ -54,17 +51,15 @@ char* cache_get(Cache cache, char* key);
 int cache_delete(Cache cache, char* key);
 
 /**
- * Intenta tomar el mutex correspondiente a la
- * clave que contenga list.
- * Retorna un puntero al mutex si el mutex
- * es tomado, en caso contrario retorna NULL
+ * Elimina a lo sumo los 10 elementos menos
+ * usados de la cache 
 */
-pthread_mutex_t* cache_trylock(
-    Cache cache, List list);
+void cache_evict(Cache cache);
 
 /**
- * Devuelve la estructura stats de la cache
+ * Devuelve 1 si la cache está vacía y en
+ * caso contrario.
 */
-Stats cache_getStats(Cache cache);
+int cache_empty(Cache cache);
 
 #endif

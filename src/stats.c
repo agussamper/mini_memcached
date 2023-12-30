@@ -1,7 +1,7 @@
 #include "stats.h"
 #include "malloc_interface.h"
 
-#include <stdint.h>
+#include <stdlib.h>
 #include <pthread.h>
 #include <assert.h>
 #include <string.h>
@@ -23,6 +23,7 @@ Stats stats_init() {
   stats->dels = 0;
   stats->keys = 0;
   assert(!pthread_mutex_init(&(stats->mutex), NULL));
+  return stats;
 }
 
 void stats_putsInc(Stats stats) {
@@ -53,6 +54,10 @@ void stats_keysDec(Stats stats) {
   pthread_mutex_lock(&stats->mutex);
   stats->keys -= 1;
   pthread_mutex_unlock(&stats->mutex);
+}
+
+uint64_t stats_getKeys(Stats stats) {
+  return stats->keys;
 }
 
 char* stats_show(Stats stats) {

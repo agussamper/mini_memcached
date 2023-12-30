@@ -2,6 +2,7 @@
 #define __LIST_H__
 
 typedef struct Node *List;
+typedef struct _NodeEvict *NodeEvict;
 
 /**
  * Devuelve una lista vacia
@@ -68,6 +69,11 @@ List list_getByKey(List* list, char* key);
  * el puntero a list 
 */
 NodeEvict list_getEvictNode(List list);
+
+/**
+ * Guarda node en list
+*/
+void list_setEvictNode(List list, NodeEvict node);
 
 /**
  * Dada un puntero a nodo de la lista

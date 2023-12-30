@@ -1,5 +1,4 @@
 #include "cache.h"
-#include "codes.h"
 #include "list.h"
 
 #include <assert.h>
@@ -12,7 +11,7 @@
 struct _Cache {
   List *listArr;
   unsigned size; //Número de slots para listas
-  Evict* evict;
+  Evict evict;
   pthread_mutex_t* mutex_arr;
   unsigned size_mutex_arr; 
   HashFunction hash;
@@ -29,6 +28,7 @@ Cache cache_create(
   assert(cache->listArr);
 
   evict_init(&(cache->evict));
+  assert(cache->evict);
 
   long number_of_processors =
     sysconf(_SC_NPROCESSORS_ONLN);
@@ -53,10 +53,6 @@ int cache_size(Cache cache) {
   return cache->size;
 }
 
-Evict cache_getEvict(Cache cache) {
-  return cache->evict;
-}
-
 /**
  * Devuelve el indice de la cache
  * correspondiente a key.
@@ -75,7 +71,7 @@ pthread_mutex_t* get_mutex_by_key(
   return cache->mutex_arr+idx_mutex;
 }
 
-void cache_insert(Cache cache, 
+int cache_insert(Cache cache, 
   char *key, unsigned key_length, 
   char *value, unsigned value_length
 ) {
@@ -93,19 +89,19 @@ void cache_insert(Cache cache,
   switch (res) {
   case 0:
     pthread_mutex_unlock(mutex);
-    return NOMEM;
+    return 0;
     break;
   case 1:
-    res = evict_add(cache->evict, list);
+    res = evict_add(cache->evict, *list);
     if(0 == res) {
       list_remove(*list);
       pthread_mutex_unlock(mutex);
-      return NOMEM;
+      return 0;
     }
     stats_keysInc(cache->stats);
     break;
   default:
-    evict_update(cache->evict, list);
+    evict_update(cache->evict, *list);
     break;
   }
   pthread_mutex_unlock(mutex);
@@ -118,7 +114,7 @@ char* cache_get(Cache cache, char* key) {
     get_mutex_by_key(cache, idx);
   List* list = cache->listArr+idx;
   pthread_mutex_lock(mutex);
-  char* value = list_getByKey(list, key);
+  char* value = list_getValue(list, key);
   pthread_mutex_unlock(mutex);
   return value;
 }
@@ -158,6 +154,30 @@ pthread_mutex_t* cache_trylock(
   return NULL;
 }
 
-Stats cache_getStats(Cache cache) {
-  return cache->stats;
+void cache_evict(Cache cache) {
+  Evict evict = cache->evict;
+  evict_lock(evict);
+  for(
+    int i = 0;
+    i < 10 && !evict_empty(evict);
+    i++
+  ) {
+    NodeEvict nodeEvict = evict_getLru(evict);
+    List list = evict_getList(nodeEvict);
+    pthread_mutex_t* mutex = 
+      cache_trylock(cache,
+        list);
+    if(!mutex) {
+      continue;
+    }
+    evict_removeLru(evict);
+    list_remove(list);
+    stats_keysDec(cache->stats);
+    pthread_mutex_unlock(mutex);
+  }
+  evict_unlock(evict);
+}
+
+int cache_empty(Cache cache) {
+  return stats_getKeys(cache->stats) == 0;
 }

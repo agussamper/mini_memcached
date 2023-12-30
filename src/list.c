@@ -1,5 +1,4 @@
 #include "list.h"
-#include "evict.h"
 #include "malloc_interface.h"
 #include "codes.h"
 
@@ -66,7 +65,7 @@ int list_add(List* list,
     char* value, unsigned vlen) {
   assert(list != NULL);
   Node* node = *list;
-  char* newValue = allocate_mem(sizeof(char)*vlen);
+  char* newValue = allocate_mem(sizeof(char)*(vlen+1));
   if(!newValue) {
     return NOMEM;
   }
@@ -74,23 +73,28 @@ int list_add(List* list,
   if(isInList(&node, key)) {
     free(node->value);    
     node->value = newValue;
-    node->prev->next = node->next;
-    node->next->prev = node->prev;
-    Node *top = list;
-    top->prev = node;
-    node->next = top;
-    node->prev = NULL;
+    Node *top = *list;
+    if(top->next != NULL && top != node) {
+      node->prev->next = node->next;
+      node->next->prev = node->prev;
+      top->prev = node;
+      node->next = top;
+      node->prev = NULL;
+    }
+    *list = node;
     return 2;
   }
 
   Node* newNode = allocate_mem(sizeof(Node));
-  char* newKey = allocate_mem(sizeof(char)*vlen);
+  char* newKey = allocate_mem(sizeof(char)*(klen+1));
   if(!newNode || !newKey) {
     return 0;
   }
   Node* top = *list;
   newNode->next = top;
-  top->prev = newNode;
+  if(NULL != top) {
+    top->prev = newNode;
+  }
   newNode->prev = NULL;
   
   strcpy(newKey, key);
@@ -146,7 +150,8 @@ void* list_getValue(List* list,
   for(; node != NULL; node->next) {
     if(0 == strcmp(key, node->key)) {
       char* val =
-        allocate_mem(strlen(key)*sizeof(char));
+        allocate_mem(strlen(node->value)*sizeof(char));
+      strcpy(val, node->value);
       return val;
     }
   }
@@ -155,8 +160,8 @@ void* list_getValue(List* list,
 
 List list_getByKey(List* list,
     char* key) {
-  Node* node = *list;
-  for(; node != NULL; node->next) {
+  Node* node = *list;  
+  for(; node != NULL; node->next) {    
     if(0 == strcmp(key, node->key)) {      
       return node;
     }
@@ -166,6 +171,10 @@ List list_getByKey(List* list,
 
 NodeEvict list_getEvictNode(List list) {
   return list->evict;
+}
+
+void list_setEvictNode(List list, NodeEvict node) {
+  list->evict = node;
 }
 
 char* list_getKey(List list) {

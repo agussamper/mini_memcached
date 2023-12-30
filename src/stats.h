@@ -1,6 +1,8 @@
 #ifndef __STATS_H__
 #define __STATS_H__
 
+#include <stdint.h>
+
 typedef struct _Stats *Stats;
 
 /**
@@ -39,6 +41,8 @@ void stats_keysInc(Stats stats);
  * stats
 */
 void stats_keysDec(Stats stats);
+
+uint64_t stats_getKeys(Stats stats);
 
 /**
  * Devuelve un string con las

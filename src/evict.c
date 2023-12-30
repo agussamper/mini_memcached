@@ -1,11 +1,9 @@
-#include "list.h"
-#include "cache.h"
+#include "evict.h"
+#include "malloc_interface.h"
 
-#include <evict.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <malloc_interface.h>
 #include <assert.h>
 
 struct _NodeEvict {
@@ -23,22 +21,22 @@ struct _NodeEvict {
  * hacemos next tenemos lru y si desde lru
  * hacemos prev tenemos mru
 */
-struct _Evict {
+struct _Evict {  
   NodeEvict mru;
   NodeEvict lru;
-  pthread_mutex_t mutex;
+  pthread_mutex_t mutex;  
 };
 
 void evict_init(Evict* evict_ptr) {
-  Evict evict = *evict_ptr;
-  evict = malloc(sizeof(struct _Evict));
-  assert(evict);
-  evict->mru = NULL;
-  evict->lru = NULL;
-  assert(!pthread_mutex_init(&(evict->mutex), NULL));
+  *evict_ptr = malloc(sizeof(struct _Evict));
+  assert(*evict_ptr);
+  (*evict_ptr)->mru = NULL;
+  (*evict_ptr)->lru = NULL;
+  assert(!pthread_mutex_init(&((*evict_ptr)->mutex), NULL));
 }
 
-int evict_add(Evict evict, const List list) {
+int evict_add(Evict evict, List list) {
+  assert(evict);
   NodeEvict node = 
     allocate_mem(sizeof(struct _NodeEvict));
   if(!node) {
@@ -63,7 +61,8 @@ int evict_add(Evict evict, const List list) {
     evict->mru->next = node;
     evict->lru->prev = node;
     evict->mru = node;
-  } 
+  }
+  list_setEvictNode(list, node); 
   pthread_mutex_unlock(&evict->mutex);
   return 1;
 }
@@ -104,26 +103,33 @@ void evict_remove(Evict evict, const List list) {
   pthread_mutex_unlock(&evict->mutex);
 }
 
-void evict_dismiss(Cache cache, Evict evict) {
-  pthread_mutex_lock(&evict->mutex);
-  NodeEvict node = evict->lru;
-  for(int i = 0; node && i < 10;
-      node = node->next, i++) {
-    pthread_mutex_t* mutex = 
-      cache_trylock(cache, node->list_ptr);
-    if(!mutex) {
-      continue;
-    }
-    if(evict->mru == evict->lru) {
+void evict_removeLru(Evict evict) {  
+  if(evict->mru == evict->lru) {
       evict->mru = NULL;
       evict->lru = NULL;
-    } else {
-      node->prev->next = node->next;
-      node->next->prev = node->prev;
-    }
-    list_remove(node->list_ptr);
-    stats_keysDec(cache_getStats(cache));
-    pthread_mutex_unlock(mutex);
+  } else {
+    NodeEvict node = evict->lru;
+    node->prev->next = node->next;
+    node->next->prev = node->prev;
   }
+}
+
+void evict_lock(Evict evict) {
+  pthread_mutex_lock(&evict->mutex);
+}
+
+void evict_unlock(Evict evict) {
   pthread_mutex_unlock(&evict->mutex);
+}
+
+int evict_empty(Evict evict) {
+  return evict->lru == NULL ? 1 : 0;
+}
+
+List evict_getList(NodeEvict nEvict) {
+  return nEvict->list_ptr;
+}
+
+NodeEvict evict_getLru(Evict evict) {
+  return evict->lru;
 }
