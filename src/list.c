@@ -130,7 +130,7 @@ int list_remove_key(List* list,
   return 1;
 }
 
-void list_remove(List* list, List lNode) {
+void list_remove_node(List* list, List lNode) {
   if(!list || !lNode) {
     return;
   }
@@ -147,6 +147,7 @@ void list_remove(List* list, List lNode) {
   if(*list == lNode) {
     *list = lNode->next;
   }
+  free(node);
 }
 
 void* list_getValue(List* list,

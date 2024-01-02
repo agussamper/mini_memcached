@@ -17,7 +17,7 @@ void evict_init(Evict* evict_ptr);
  * Devuelve 1 si pudo agregar y 0
  * en caso contrario
 */
-int evict_add(Evict evict, List* list, List lnode);
+int evict_add(Evict evict, List list);
 
 /**
  * Dada un nodo de la lista que ya se encuentra
@@ -62,12 +62,6 @@ NodeEvict evict_getLru(Evict evict);
  * Devuelve la lista del nodo pasado por
  * argumentos
 */
-List* evict_getList(NodeEvict nEvict);
-
-/**
- * Devuelve el puntero al lNode del nodo
- * pasado por argumentos
-*/
-List evict_getLNode(NodeEvict nEvict);
+List evict_getList(NodeEvict nEvict);
 
 #endif
