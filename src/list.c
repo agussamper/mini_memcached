@@ -122,11 +122,11 @@ int list_remove_key(List* list,
   free(node->value);
   free(node->evict);
   node->prev->next = node->next;
-  node->next->prev = node->prev;
-  free(node);
+  node->next->prev = node->prev;  
   if(*list == node) {
     *list = (*list)->next;
   }
+  free(node);
   return 1;
 }
 
