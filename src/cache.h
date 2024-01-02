@@ -57,7 +57,7 @@ int cache_delete(Cache cache, char* key);
 void cache_evict(Cache cache);
 
 /**
- * Devuelve 1 si la cache está vacía y en
+ * Devuelve 1 si la cache está vacía y 0 en
  * caso contrario.
 */
 int cache_empty(Cache cache);
