@@ -36,9 +36,9 @@ int list_add(List* list,
   char* value, unsigned vlen);
 
 /**
- * Elimina list de la lista
+ * Elimina lNode de list
 */
-void list_remove(List list);
+void list_remove(List* list, List lNode);
 
 /**
  * Borra de la lista el elemento que tiene

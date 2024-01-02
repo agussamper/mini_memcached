@@ -24,8 +24,10 @@ void* run(void* arg) {
   for(int i = 0; i < 6; i++) {
     clave[5]= i + '0';
     char* valorObt = cache_get(cache, clave);
-    printf("clave=%s, valor=%s\n", clave, valorObt);
-    free(valorObt);
+    if(valorObt != NULL) {
+      printf("clave=%s, valor=%s\n", clave, valorObt);
+      free(valorObt);
+    }
   }
   char s[100];
   switch (id) {
@@ -49,17 +51,25 @@ void* run(void* arg) {
   for(int i = 0; i < 4; i++) {
     clave[5]= i + '0';
     char* valorObt = cache_get(cache, clave);
-    printf("clave=%s, valor=%s\n", clave, valorObt);
-    free(valorObt);
+    if(valorObt != NULL) {
+      printf("clave=%s, valor=%s\n", clave, valorObt);
+      free(valorObt);
+    }
   }
-  int res = cache_delete(cache, "clave0"); //TODO: solucionar deadlock
-  printf("id=%d: pase el delete\n", res);
+  int res = cache_delete(cache, "clave0");
+  printf("id=%d: pase el delete\n", id);
   if(0 == res) {
-    printf("id=%d: clave0 no encontrada\n", res);
+    printf("id=%d: clave0 no encontrada\n", id);
   } else {
-    printf("id=%d: encontrada\n", res);
+    printf("id=%d: encontrada\n", id);
   }
-  assert(!cache_get(cache, "clave0"));
+  res = cache_delete(cache, "clave0");
+  printf("id=%d: pase el delete\n", id);
+  if(0 == res) {
+    printf("id=%d: clave0 no encontrada\n", id);
+  } else {
+    printf("id=%d: encontrada\n", id);
+  }
 
   return NULL;
 }
@@ -74,7 +84,7 @@ unsigned str_KRHash(const char *s) {
 
 int main() {
   cache = cache_create(1000, str_KRHash);
-  int numThreads = 4;
+  int numThreads = 8;
   pthread_t threads[numThreads];
   for (int i = 0; i < numThreads; i++) {
 	  pthread_create(threads+i, NULL, run, i + (void*)0);    

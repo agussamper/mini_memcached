@@ -92,9 +92,9 @@ int cache_insert(Cache cache,
     return 0;
     break;
   case 1:
-    res = evict_add(cache->evict, *list);
+    res = evict_add(cache->evict, list, *list);
     if(0 == res) {
-      list_remove(*list);
+      list_remove(list, *list);
       pthread_mutex_unlock(mutex);
       return 0;
     }
@@ -136,7 +136,7 @@ int cache_delete(Cache cache, char* key) {
     return 0;
   }
   evict_remove(cache->evict, ptr);
-  list_remove(ptr);
+  list_remove(list, ptr);
   stats_keysDec(cache->stats);
   pthread_mutex_unlock(mutex);
   return 1;
@@ -163,15 +163,15 @@ void cache_evict(Cache cache) {
     i++
   ) {
     NodeEvict nodeEvict = evict_getLru(evict);
-    List list = evict_getList(nodeEvict);
+    List lNode = evict_getLNode(nodeEvict);
     pthread_mutex_t* mutex = 
       cache_trylock(cache,
-        list);
+        lNode);
     if(!mutex) {
       continue;
     }
     evict_removeLru(evict);
-    list_remove(list);
+    list_remove(evict_getList(nodeEvict), lNode);
     stats_keysDec(cache->stats);
     pthread_mutex_unlock(mutex);
   }

@@ -9,7 +9,8 @@
 struct _NodeEvict {
   struct _NodeEvict* next;
   struct _NodeEvict* prev;
-  List list_ptr;
+  List* list;
+  List lNode;
 };
 
 /**
@@ -35,14 +36,15 @@ void evict_init(Evict* evict_ptr) {
   assert(!pthread_mutex_init(&((*evict_ptr)->mutex), NULL));
 }
 
-int evict_add(Evict evict, List list) {
+int evict_add(Evict evict, List* list, List lnode) {
   assert(evict);
   NodeEvict node = 
     allocate_mem(sizeof(struct _NodeEvict));
   if(!node) {
     return 0;
   }
-  node->list_ptr = list;
+  node->list = list;
+  node->lNode = lnode;
   pthread_mutex_lock(&evict->mutex);
   if(NULL == evict->lru) {
     node->next = node;
@@ -62,12 +64,12 @@ int evict_add(Evict evict, List list) {
     evict->lru->prev = node;
     evict->mru = node;
   }
-  list_setEvictNode(list, node); 
+  list_setEvictNode(lnode, node); 
   pthread_mutex_unlock(&evict->mutex);
   return 1;
 }
 
-void evict_update(Evict evict, List list) {
+void evict_update(Evict evict, const List list) {
   assert(list);
   NodeEvict node = list_getEvictNode(list);
   assert(node);
@@ -126,8 +128,12 @@ int evict_empty(Evict evict) {
   return evict->lru == NULL ? 1 : 0;
 }
 
-List evict_getList(NodeEvict nEvict) {
-  return nEvict->list_ptr;
+List* evict_getList(NodeEvict nEvict) {
+  return nEvict->list;
+}
+
+List evict_getLNode(NodeEvict nEvict) {
+  return nEvict->lNode;
 }
 
 NodeEvict evict_getLru(Evict evict) {

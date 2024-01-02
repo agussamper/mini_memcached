@@ -12,11 +12,12 @@ typedef struct _NodeEvict *NodeEvict;
 void evict_init(Evict* evict_ptr);
 
 /**
- * Agrega list a la estructura evict
+ * Agrega list junto con lnode en la
+ * estructura evict
  * Devuelve 1 si pudo agregar y 0
  * en caso contrario
 */
-int evict_add(Evict evict, List list);
+int evict_add(Evict evict, List* list, List lnode);
 
 /**
  * Dada un nodo de la lista que ya se encuentra
@@ -61,6 +62,12 @@ NodeEvict evict_getLru(Evict evict);
  * Devuelve la lista del nodo pasado por
  * argumentos
 */
-List evict_getList(NodeEvict nEvict);
+List* evict_getList(NodeEvict nEvict);
+
+/**
+ * Devuelve el puntero al lNode del nodo
+ * pasado por argumentos
+*/
+List evict_getLNode(NodeEvict nEvict);
 
 #endif

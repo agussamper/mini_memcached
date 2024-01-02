@@ -124,15 +124,17 @@ int list_remove_key(List* list,
   node->prev->next = node->next;
   node->next->prev = node->prev;
   free(node);
-
+  if(*list == node) {
+    *list = (*list)->next;
+  }
   return 1;
 }
 
-void list_remove(List list) {
-  if(!list) {
+void list_remove(List* list, List lNode) {
+  if(!list || !lNode) {
     return;
   }
-  Node* node = list;
+  Node* node = lNode;
   if(node->prev != NULL) {
     node->prev->next = node->next;
   }
@@ -142,12 +144,15 @@ void list_remove(List list) {
   free(node->key);
   free(node->value);
   free(node->evict);
+  if(*list == lNode) {
+    *list = lNode->next;
+  }
 }
 
 void* list_getValue(List* list,
     char* key) {
   Node* node = *list;
-  for(; node != NULL; node->next) {
+  for(; node != NULL; node = node->next) {
     if(0 == strcmp(key, node->key)) {
       char* val =
         allocate_mem(strlen(node->value)*sizeof(char));
@@ -161,7 +166,7 @@ void* list_getValue(List* list,
 List list_getByKey(List* list,
     char* key) {
   Node* node = *list;  
-  for(; node != NULL; node->next) {    
+  for(; node != NULL; node = node->next) {    
     if(0 == strcmp(key, node->key)) {      
       return node;
     }
