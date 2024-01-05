@@ -6,6 +6,12 @@
 #include <assert.h>
 #include <unistd.h>
 
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <stdlib.h>
+
+//#define MEM_ENV_VAR "MAXMEM_MB"
+
 Cache cache;
 
 void* run(void* arg) {
@@ -70,8 +76,24 @@ void* run(void* arg) {
   } else {
     printf("id=%d: encontrada\n", id);
   }
-
   return NULL;
+}
+
+void* mem(void* arg) {
+  int id = arg - (void*)0;
+  printf("id=%d\n",id);
+
+  char clave[100] = "clave";
+  char valor[200] = "este valor 1000 seta usado para insertar en cache, es mas largo con el objetivo que se llene la memoria";
+  int lenval = strlen(valor); 
+  valor[lenval] = '\0'; 
+  for(int i = 0; i < 10000000; i++) {
+    sprintf(clave+5, "%d", i);
+    cache_insert(cache, clave, 6, valor, lenval);
+    if(i % 100000 == 0) {
+      printf("insertando... i=%d, id=%d\n", i, id);
+    }
+  }
 }
 
 unsigned str_KRHash(const char *s) {
@@ -82,15 +104,32 @@ unsigned str_KRHash(const char *s) {
   return hashval;
 }
 
+void setmemlimit()
+{
+  struct rlimit memlimit;
+  long bytes;
+
+  //if(getenv(MEM_ENV_VAR)!=NULL)
+  //{
+    //bytes = atol(getenv(MEM_ENV_VAR))*(1024*1024);
+    bytes = 1024*(1024*1024);
+    memlimit.rlim_cur = bytes;
+    memlimit.rlim_max = bytes;
+    setrlimit(RLIMIT_AS, &memlimit);
+  //}
+}
+
 int main() {
-  cache = cache_create(1000, str_KRHash);
+  setmemlimit();
+  cache = cache_create(1000000, str_KRHash);
   int numThreads = 8;
   pthread_t threads[numThreads];
   for (int i = 0; i < numThreads; i++) {
-	  pthread_create(threads+i, NULL, run, i + (void*)0);    
+	  pthread_create(threads+i, NULL, mem, i + (void*)0);    
   }
   for (int i = 0; i < numThreads; i++) {
     pthread_join(threads[i], NULL);
   }
+  //mem(NULL);
   return 0;
 }

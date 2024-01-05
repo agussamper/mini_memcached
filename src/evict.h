@@ -1,6 +1,7 @@
 #ifndef __EVICT_H__
 #define __EVICT_H__
 
+#include <pthread.h>
 #include "list.h"
 
 typedef struct _Evict *Evict;
@@ -12,12 +13,13 @@ typedef struct _NodeEvict *NodeEvict;
 void evict_init(Evict* evict_ptr);
 
 /**
- * Agrega list junto con lnode en la
- * estructura evict
+ * Agrega list junto con listIdx en la
+ * estructura evict.
  * Devuelve 1 si pudo agregar y 0
- * en caso contrario
+ * en caso contrario.
 */
-int evict_add(Evict evict, List list);
+int evict_add(Evict evict, List list,
+    unsigned listIdx);
 
 /**
  * Dada un nodo de la lista que ya se encuentra
@@ -31,10 +33,10 @@ void evict_update(Evict evict, const List list);
 void evict_remove(Evict evict, const List list);
 
 /**
- * Elimina el elemento menos recientemente usado
- * de evict. Esta función no es thread safety
+ * Elimina node de evict, esta función no es
+ * thread safety
 */
-void evict_removeLru(Evict evict);
+void evict_removeNode(Evict evict, NodeEvict node);
 
 /**
  * Agarra el lock de evict
@@ -59,9 +61,21 @@ int evict_empty(Evict evict);
 NodeEvict evict_getLru(Evict evict);
 
 /**
+ * Dado un node de tipo NodeEvict, devuelve
+ * el siguiente
+*/
+NodeEvict evict_getNextNode(NodeEvict node);
+
+/**
  * Devuelve la lista del nodo pasado por
  * argumentos
 */
 List evict_getList(NodeEvict nEvict);
+
+/**
+ * Devuelve el indice de la lista de la cache
+ * a la que apunte nodeEvict
+*/
+unsigned evict_getListIdx(NodeEvict nodeEvict);
 
 #endif

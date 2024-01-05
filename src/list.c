@@ -74,9 +74,17 @@ int list_add(List* list,
     free(node->value);    
     node->value = newValue;
     Node *top = *list;
-    if(top->next != NULL && top != node) {
+    if(top == node) {
+      return 2;
+    }
+    if(node->next != NULL) {
       node->prev->next = node->next;
       node->next->prev = node->prev;
+      top->prev = node;
+      node->next = top;
+      node->prev = NULL;
+    } else {
+      node->prev->next = NULL;
       top->prev = node;
       node->next = top;
       node->prev = NULL;
@@ -121,8 +129,12 @@ int list_remove_key(List* list,
   free(node->key);
   free(node->value);
   free(node->evict);
-  node->prev->next = node->next;
-  node->next->prev = node->prev;  
+  if(node->prev != NULL) {
+    node->prev->next = node->next;
+  }
+  if(node->next != NULL) {
+    node->next->prev = node->prev;  
+  }
   if(*list == node) {
     *list = (*list)->next;
   }

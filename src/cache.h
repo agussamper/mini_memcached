@@ -16,6 +16,7 @@ Cache cache_create(
 /**
  * Retorna el numero de elementos en la cache
 */
+//TODO: implementar
 int cache_nelems(Cache cache);
 
 /**

@@ -65,7 +65,7 @@ unsigned get_idx(Cache cache, char* key) {
  * Devuelve el mutex de la cache
  * correspondiente a idx.
 */
-pthread_mutex_t* get_mutex_by_key(
+pthread_mutex_t* get_mutex_by_idx(
   Cache cache, unsigned idx) {  
   unsigned idx_mutex = idx%(cache->size_mutex_arr);
   return cache->mutex_arr+idx_mutex;
@@ -78,7 +78,7 @@ int cache_insert(Cache cache,
   stats_putsInc(cache->stats);
   unsigned idx = get_idx(cache, key);
   pthread_mutex_t* mutex = 
-    get_mutex_by_key(cache, idx);
+    get_mutex_by_idx(cache, idx);
   List* list = cache->listArr+idx;
   pthread_mutex_lock(mutex);
   if(cache->listArr[idx] == NULL) {
@@ -92,7 +92,8 @@ int cache_insert(Cache cache,
     return 0;
     break;
   case 1:
-    res = evict_add(cache->evict, *list);
+    res = evict_add(cache->evict, *list,
+      idx);
     if(0 == res) {
       list_remove_node(list, *list);
       pthread_mutex_unlock(mutex);
@@ -111,7 +112,7 @@ char* cache_get(Cache cache, char* key) {
   stats_getsInc(cache->stats);
   unsigned idx = get_idx(cache, key);
   pthread_mutex_t* mutex = 
-    get_mutex_by_key(cache, idx);
+    get_mutex_by_idx(cache, idx);
   List* list = cache->listArr+idx;
   pthread_mutex_lock(mutex);
   char* value = list_getValue(list, key);
@@ -123,7 +124,7 @@ int cache_delete(Cache cache, char* key) {
   stats_delsInc(cache->stats);
   unsigned idx = get_idx(cache, key);
   pthread_mutex_t* mutex = 
-    get_mutex_by_key(cache, idx);
+    get_mutex_by_idx(cache, idx);
   List* list = cache->listArr+idx;
   pthread_mutex_lock(mutex);
   if(list_empty(*list)) {
@@ -145,25 +146,27 @@ int cache_delete(Cache cache, char* key) {
 void cache_evict(Cache cache) {
   Evict evict = cache->evict;
   evict_lock(evict);
+  NodeEvict nodeEvict = evict_getLru(evict);
   for(
     int i = 0;
     i < 10 && !evict_empty(evict);
     i++
-  ) {
-    NodeEvict nodeEvict = evict_getLru(evict);
+  ) {    
     List list = evict_getList(nodeEvict);
-    
-    char* key = list_getKey(list);
-    unsigned idx = get_idx(cache, key);
+    unsigned idx = evict_getListIdx(nodeEvict);
     pthread_mutex_t* mutex = 
-      get_mutex_by_key(cache, idx);
+      get_mutex_by_idx(cache, idx);
+    printf("idx=%d\n", idx);
     if(0 != pthread_mutex_trylock(mutex)) {
+      nodeEvict = evict_getNextNode(nodeEvict);
       continue;
     }
-    evict_removeLru(evict);
+    NodeEvict next = evict_getNextNode(nodeEvict);
+    evict_removeNode(evict, nodeEvict);
     list_remove_node(cache->listArr+idx, list);
     stats_keysDec(cache->stats);
     pthread_mutex_unlock(mutex);
+    nodeEvict = next;
   }
   evict_unlock(evict);
 }

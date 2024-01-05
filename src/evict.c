@@ -10,6 +10,7 @@ struct _NodeEvict {
   struct _NodeEvict* next;
   struct _NodeEvict* prev;
   List list;
+  unsigned listIdx; //Indice de la lista en la cache
 };
 
 /**
@@ -35,7 +36,8 @@ void evict_init(Evict* evict_ptr) {
   assert(!pthread_mutex_init(&((*evict_ptr)->mutex), NULL));
 }
 
-int evict_add(Evict evict, List list) {
+int evict_add(Evict evict, List list,
+    unsigned listIdx) {
   assert(evict);
   NodeEvict node = 
     allocate_mem(sizeof(struct _NodeEvict));
@@ -43,6 +45,7 @@ int evict_add(Evict evict, List list) {
     return 0;
   }
   node->list = list;
+  node->listIdx = listIdx;
   pthread_mutex_lock(&evict->mutex);
   if(NULL == evict->lru) {
     node->next = node;
@@ -76,13 +79,19 @@ void evict_update(Evict evict, const List list) {
     pthread_mutex_unlock(&evict->mutex);
     return;
   }
-  node->prev->next = node->next;
-  node->next->prev = node->prev;
-  node->prev = evict->mru;
-  node->next = evict->lru;
-  evict->mru->next = node;
-  evict->lru->prev = node;
-  evict->mru = node;
+  if(evict->lru == evict->lru->next) {
+    NodeEvict lruNode = node->next;
+    evict->lru = lruNode;
+    evict->mru = node;
+  } else {
+    node->prev->next = node->next;
+    node->next->prev = node->prev;
+    node->prev = evict->mru;
+    node->next = evict->lru;
+    evict->mru->next = node;
+    evict->lru->prev = node;
+    evict->mru = node;
+  }
   pthread_mutex_unlock(&evict->mutex);
 }
 
@@ -95,20 +104,45 @@ void evict_remove(Evict evict, const List list) {
   if(evict->mru == evict->lru) {
     evict->mru = NULL;
     evict->lru = NULL;
+  } else if(evict->lru->next == evict->mru) {
+    NodeEvict node = list_getEvictNode(list);
+    NodeEvict uniqueNode = node->next;
+    evict->mru = uniqueNode;
+    evict->lru = uniqueNode;
+    uniqueNode->next = uniqueNode;
+    uniqueNode->prev = uniqueNode;
   } else {
     NodeEvict node = list_getEvictNode(list);
+    if(node == evict->mru) {
+      evict->mru = evict->mru->prev;
+    } else if(node == evict->lru) {
+      evict->lru = evict->lru->next;
+    }
     node->prev->next = node->next;
     node->next->prev = node->prev;
   }
   pthread_mutex_unlock(&evict->mutex);
 }
 
-void evict_removeLru(Evict evict) {  
+void evict_removeNode(Evict evict, NodeEvict node) {
+  if(evict->mru == NULL) {
+    return;
+  }
   if(evict->mru == evict->lru) {
-      evict->mru = NULL;
-      evict->lru = NULL;
+    evict->mru = NULL;
+    evict->lru = NULL;
+  } else if(evict->lru->next == evict->mru) {
+    NodeEvict uniqueNode = node->next;
+    evict->mru = uniqueNode;
+    evict->lru = uniqueNode;
+    uniqueNode->next = uniqueNode;
+    uniqueNode->prev = uniqueNode;
   } else {
-    NodeEvict node = evict->lru;
+    if(node == evict->mru) {
+      evict->mru = evict->mru->prev;
+    } else if(node == evict->lru) {
+      evict->lru = evict->lru->next;
+    }
     node->prev->next = node->next;
     node->next->prev = node->prev;
   }
@@ -130,6 +164,14 @@ NodeEvict evict_getLru(Evict evict) {
   return evict->lru;
 }
 
+NodeEvict evict_getNextNode(NodeEvict node) {
+  return node->next;
+}
+
 List evict_getList(NodeEvict nEvict) {
   return nEvict->list;
+}
+
+unsigned evict_getListIdx(NodeEvict nodeEvict) {
+  return nodeEvict->listIdx;
 }
