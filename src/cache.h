@@ -12,13 +12,7 @@ typedef struct _Cache *Cache;
 Cache cache_create(
     unsigned size,
     HashFunction hash);
-
-/**
- * Retorna el numero de elementos en la cache
-*/
-//TODO: implementar
-int cache_nelems(Cache cache);
-
+    
 /**
  * Devuelve la cantidad de slots en la cache
 */

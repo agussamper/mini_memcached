@@ -112,7 +112,7 @@ void setmemlimit()
   //if(getenv(MEM_ENV_VAR)!=NULL)
   //{
     //bytes = atol(getenv(MEM_ENV_VAR))*(1024*1024);
-    bytes = 1024*(1024*1024);
+    bytes = 500*(1024*1024);
     memlimit.rlim_cur = bytes;
     memlimit.rlim_max = bytes;
     setrlimit(RLIMIT_AS, &memlimit);
@@ -122,7 +122,7 @@ void setmemlimit()
 int main() {
   setmemlimit();
   cache = cache_create(1000000, str_KRHash);
-  int numThreads = 8;
+  int numThreads = 20;
   pthread_t threads[numThreads];
   for (int i = 0; i < numThreads; i++) {
 	  pthread_create(threads+i, NULL, mem, i + (void*)0);    

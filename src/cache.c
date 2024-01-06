@@ -156,7 +156,6 @@ void cache_evict(Cache cache) {
     unsigned idx = evict_getListIdx(nodeEvict);
     pthread_mutex_t* mutex = 
       get_mutex_by_idx(cache, idx);
-    printf("idx=%d\n", idx);
     if(0 != pthread_mutex_trylock(mutex)) {
       nodeEvict = evict_getNextNode(nodeEvict);
       continue;

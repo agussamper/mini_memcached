@@ -79,10 +79,16 @@ void evict_update(Evict evict, const List list) {
     pthread_mutex_unlock(&evict->mutex);
     return;
   }
-  if(evict->lru == evict->lru->next) {
-    NodeEvict lruNode = node->next;
-    evict->lru = lruNode;
+  if(node == evict->lru) {
+    node->prev->next = node->next;
+    node->next->prev = node->prev;
+    NodeEvict newLru = evict->lru->next;
+    newLru->prev = node;
+    node->next = newLru;
+    node->prev = evict->mru;
+    evict->mru->next = node;
     evict->mru = node;
+    evict->lru = evict->lru->next;
   } else {
     node->prev->next = node->next;
     node->next->prev = node->prev;
