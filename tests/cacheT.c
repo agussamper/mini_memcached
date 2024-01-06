@@ -89,7 +89,7 @@ void* mem(void* arg) {
   valor[lenval] = '\0'; 
   for(int i = 0; i < 10000000; i++) {
     sprintf(clave+5, "%d", i);
-    cache_insert(cache, clave, 6, valor, lenval);
+    cache_insert(cache, clave, strlen(clave), valor, lenval);
     if(i % 100000 == 0) {
       printf("insertando... i=%d, id=%d\n", i, id);
     }
