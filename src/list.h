@@ -1,6 +1,8 @@
 #ifndef __LIST_H__
 #define __LIST_H__
 
+#include <pthread.h>
+
 typedef struct Node *List;
 typedef struct _NodeEvict *NodeEvict;
 
@@ -30,10 +32,14 @@ int list_empty(List list);
  * Si se sobreescribe o se agrega, el nodo
  * modificado o agregado se coloca en el tope
  * de la lista.
+ * se debe pasar en listMutex el mutex de la
+ * cache que esté tomado (un elemento de
+ * mutex_arr) al llamar la función.
 */
 int list_add(List* list,
   char* key, unsigned klen,
-  char* value, unsigned vlen);
+  char* value, unsigned vlen,
+  pthread_mutex_t* listMutex);
 
 /**
  * Elimina lNode de la lista apuntada por list
@@ -52,9 +58,13 @@ int list_remove_key(List* list, char* key);
  * Busca el valor asociado a la clave pasada
  * por argumentos, si encuentra tal valor
  * devuelve una copia del mismo, si no 
- * devuelve NULL 
+ * devuelve NULL.
+ * se debe pasar en listMutex el mutex de la
+ * cache que esté tomado (un elemento de
+ * mutex_arr) al llamar la función.
 */
-void* list_getValue(List* list, char* key);
+void* list_getValue(List* list, char* key,
+  pthread_mutex_t* listMutex);
 
 /**
  * Devuelve el puntero al nodo de la lista

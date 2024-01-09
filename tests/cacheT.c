@@ -89,11 +89,26 @@ void* mem(void* arg) {
   valor[lenval] = '\0'; 
   for(int i = 0; i < 10000000; i++) {
     sprintf(clave+5, "%d", i);
+    int lenIdx = strlen(clave+5);
+    if(lenIdx < 7) {
+      int rep = 7 - lenIdx;
+      for(int j = 0; j < rep; j++) {
+        sprintf(clave+5+j, "%d", 0);
+      }
+      sprintf(clave+5+rep, "%d", i);
+    }    
     cache_insert(cache, clave, strlen(clave), valor, lenval);
     if(i % 100000 == 0) {
       printf("insertando... i=%d, id=%d\n", i, id);
     }
   }
+  /*for(int i = 0; i < 10000000; i++) {
+    sprintf(clave+5, "%d", i);
+    cache_insert(cache, clave, strlen(clave), valor, lenval);
+    if(i % 100000 == 0) {
+      printf("insertando devuelta... i=%d, id=%d\n", i, id);
+    }
+  }*/
 }
 
 unsigned str_KRHash(const char *s) {
@@ -122,14 +137,17 @@ void setmemlimit()
 int main() {
   setmemlimit();
   cache = cache_create(1000000, str_KRHash);
-  int numThreads = 20;
+  int numThreads = 10;
   pthread_t threads[numThreads];
   for (int i = 0; i < numThreads; i++) {
-	  pthread_create(threads+i, NULL, mem, i + (void*)0);    
+	  pthread_create(threads+i, NULL, run, i + (void*)0);    
   }
   for (int i = 0; i < numThreads; i++) {
     pthread_join(threads[i], NULL);
-  }
+  }  
   //mem(NULL);
+  char* stats = cache_getStats(cache);
+  printf("%s\n", stats);
+  free(stats);
   return 0;
 }

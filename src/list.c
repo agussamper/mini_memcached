@@ -62,12 +62,14 @@ int isInList(List* list, char *key) {
 
 int list_add(List* list,
     char* key, unsigned klen,
-    char* value, unsigned vlen) {
-  assert(list != NULL);
-  Node* node = *list;
-  char* newValue = allocate_mem(sizeof(char)*(vlen+1));
+    char* value, unsigned vlen,
+    pthread_mutex_t* listMutex) {
+  assert(list != NULL);  
+  char* newValue = allocate_mem(
+    sizeof(char)*(vlen+1), listMutex);
+  List node = *list;
   if(!newValue) {
-    return NOMEM;
+    return 0;
   }
   strcpy(newValue, value);
   if(isInList(&node, key)) {
@@ -93,8 +95,8 @@ int list_add(List* list,
     return 2;
   }
 
-  Node* newNode = allocate_mem(sizeof(Node));
-  char* newKey = allocate_mem(sizeof(char)*(klen+1));
+  Node* newNode = allocate_mem(sizeof(Node), listMutex);
+  char* newKey = allocate_mem(sizeof(char)*(klen+1), listMutex);
   if(!newNode || !newKey) {
     return 0;
   }
@@ -163,14 +165,20 @@ void list_remove_node(List* list, List lNode) {
 }
 
 void* list_getValue(List* list,
-    char* key) {
+    char* key, 
+    pthread_mutex_t* listMutex) {
   Node* node = *list;
   for(; node != NULL; node = node->next) {
     if(0 == strcmp(key, node->key)) {
-      char* val =
-        allocate_mem(strlen(node->value)*sizeof(char));
+      int lenVal = strlen(node->value);
+      char val[lenVal+1];
       strcpy(val, node->value);
-      return val;
+      char* toReturn =
+        allocate_mem(
+          lenVal*sizeof(char),
+          listMutex);
+      strcpy(toReturn, val);
+      return toReturn;
     }
   }
   return NULL;

@@ -7,19 +7,13 @@
 
 extern Cache cache;
 
-void* allocate_mem(size_t size) {
-  void* ptr = malloc(size); 
-  //TODO: ver por que hay solo un
-  //elemento en evict cuando ocurre el error
-  while(!ptr && !cache_empty(cache)) {  
-    //puts("nomem");
-    //TODO: notar que esto no puede dejar la cache vacia
-    //ya que no podra eliminar los elementos que
-    //pertenezcan a una lista que tenga tomado el mutex 
-    cache_evict(cache);
+void* allocate_mem(size_t size,
+  pthread_mutex_t* listMutex) {
+  void* ptr = malloc(size);
+  int cacheEmpty = cache_empty(cache);
+  while(!ptr && !cacheEmpty) {   
+    cacheEmpty = cache_evict(cache, listMutex);
     ptr = malloc(size);
-    //if(ptr)
-    //  puts("encontre memoria");
   }
   return ptr;
 }

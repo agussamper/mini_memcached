@@ -56,13 +56,9 @@ void stats_keysDec(Stats stats) {
   pthread_mutex_unlock(&stats->mutex);
 }
 
-uint64_t stats_getKeys(Stats stats) {
-  return stats->keys;
-}
-
-char* stats_show(Stats stats) {
+char* stats_getStats(Stats stats, pthread_mutex_t* listMutex) {
   pthread_mutex_lock(&stats->mutex);
-  char* statsinf = allocate_mem(sizeof(char)*200);
+  char* statsinf = allocate_mem(sizeof(char)*200, listMutex);
   char* s = "OK PUTS=%"PRIu64" DELS=%"PRIu64" GETS=%"PRIu64" KEYS=%"PRIu64"\0";
   sprintf(statsinf, s,
     stats->puts, stats->dels, stats->gets,

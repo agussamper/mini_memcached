@@ -24,8 +24,8 @@ void test1() {
     list[i] = list_create();
     sprintf(kv, "%d", i);
     unsigned lenkv = strlen(kv);
-    list_add(list+i, kv, lenkv, kv, lenkv);
-    evict_add(evict, list[i], i);
+    list_add(list+i, kv, lenkv, kv, lenkv, NULL);
+    evict_add(evict, list[i], i, NULL);
   }
   evict_update(evict, list[4]);
   for(int i = 0; i < 5; i++) {
@@ -63,8 +63,8 @@ void test2() {
     list_create(list+i);
     sprintf(kv, "%d", i);
     unsigned lenkv = strlen(kv);
-    list_add(list+i, kv, lenkv, kv, lenkv);
-    evict_add(evict, list[i], i);
+    list_add(list+i, kv, lenkv, kv, lenkv, NULL);
+    evict_add(evict, list[i], i, NULL);
   }
   evict_remove(evict, list[0]);
   list_remove_node(list+0, list[0]);

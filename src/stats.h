@@ -2,6 +2,7 @@
 #define __STATS_H__
 
 #include <stdint.h>
+#include <pthread.h>
 
 typedef struct _Stats *Stats;
 
@@ -42,12 +43,10 @@ void stats_keysInc(Stats stats);
 */
 void stats_keysDec(Stats stats);
 
-uint64_t stats_getKeys(Stats stats);
-
 /**
  * Devuelve un string con las
  * estadísticas
 */
-char* stats_show(Stats stats);
+char* stats_getStats(Stats stats, pthread_mutex_t* listMutex);
 
 #endif

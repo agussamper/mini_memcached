@@ -17,9 +17,12 @@ void evict_init(Evict* evict_ptr);
  * estructura evict.
  * Devuelve 1 si pudo agregar y 0
  * en caso contrario.
+ * se debe pasar en listMutex el mutex de la
+ * cache que esté tomado (un elemento de
+ * mutex_arr) al llamar la función.
 */
 int evict_add(Evict evict, List list,
-    unsigned listIdx);
+    unsigned listIdx, pthread_mutex_t* listMutex);
 
 /**
  * Dada un nodo de la lista que ya se encuentra

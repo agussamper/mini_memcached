@@ -37,10 +37,11 @@ void evict_init(Evict* evict_ptr) {
 }
 
 int evict_add(Evict evict, List list,
-    unsigned listIdx) {
+    unsigned listIdx, pthread_mutex_t* listMutex) {
   assert(evict);
   NodeEvict node = 
-    allocate_mem(sizeof(struct _NodeEvict));
+    allocate_mem(sizeof(struct _NodeEvict),
+      listMutex);
   if(!node) {
     return 0;
   }

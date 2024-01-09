@@ -47,13 +47,22 @@ int cache_delete(Cache cache, char* key);
 
 /**
  * Elimina a lo sumo los 10 elementos menos
- * usados de la cache 
+ * usados de la cache.
+ * Retorna 1 si no hay más elementos para
+ * eliminar en la cache y 0 en caso contrario. 
 */
-void cache_evict(Cache cache);
+int cache_evict(Cache cache,
+    pthread_mutex_t* listMutex);
 
 /**
- * Devuelve 1 si la cache está vacía y 0 en
- * caso contrario.
+ * Devuelve un string con la estadisticas de la
+ * cache, debe hacerse un free del string cuando
+ * no se necesite más
+*/
+char* cache_getStats(Cache cache);
+
+/**
+ * Retorna 1 si la cache está vacía y 0 si no
 */
 int cache_empty(Cache cache);
 

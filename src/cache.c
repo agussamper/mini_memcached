@@ -7,6 +7,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <string.h>
 
 struct _Cache {
   List *listArr;
@@ -26,6 +27,9 @@ Cache cache_create(
   assert(cache);
   cache->listArr = malloc(sizeof(List)*size);
   assert(cache->listArr);
+  for(long i = 0; i < size; i++) {
+    cache->listArr[i] = NULL; 
+  }
 
   evict_init(&(cache->evict));
   assert(cache->evict);
@@ -38,7 +42,7 @@ Cache cache_create(
     malloc(sizeof(pthread_mutex_t)*size_mutex_arr);
 
   for(long i = 0; i < size_mutex_arr; i++) {
-    pthread_mutex_init((cache->mutex_arr)+i, NULL); 
+    pthread_mutex_init(cache->mutex_arr+i, NULL); 
   }
 
   cache->size = size;
@@ -79,13 +83,11 @@ int cache_insert(Cache cache,
   unsigned idx = get_idx(cache, key);
   pthread_mutex_t* mutex = 
     get_mutex_by_idx(cache, idx);
-  List* list = cache->listArr+idx;
+  List* list = cache->listArr+idx;   
   pthread_mutex_lock(mutex);
-  if(cache->listArr[idx] == NULL) {
-    cache->listArr[idx] = list_create();
-  }
   int res = list_add(list,
-    key, key_length, value, value_length);
+    key, key_length, value,
+    value_length, mutex);  
   switch (res) {
   case 0:
     pthread_mutex_unlock(mutex);
@@ -93,7 +95,7 @@ int cache_insert(Cache cache,
     break;
   case 1:
     res = evict_add(cache->evict, *list,
-      idx);
+      idx, mutex);
     if(0 == res) {
       list_remove_node(list, *list);
       pthread_mutex_unlock(mutex);
@@ -112,10 +114,33 @@ char* cache_get(Cache cache, char* key) {
   stats_getsInc(cache->stats);
   unsigned idx = get_idx(cache, key);
   pthread_mutex_t* mutex = 
-    get_mutex_by_idx(cache, idx);
+    get_mutex_by_idx(cache, idx);  
   List* list = cache->listArr+idx;
   pthread_mutex_lock(mutex);
-  char* value = list_getValue(list, key);
+  char* value = list_getValue(list, key, mutex);
+
+  //Actualizo evict e intento volver a agregar
+  //el elemento por si fué desalojado por
+  //allocate_mem en list_getValue
+  int res = list_add(list,
+    key, strlen(key), value,
+    strlen(value), mutex);  
+  assert(res != 0); //res no debería ser 0
+  switch (res) {
+  case 1:
+    res = evict_add(cache->evict, *list,
+      idx, mutex);
+    if(0 == res) {
+      list_remove_node(list, *list);
+      pthread_mutex_unlock(mutex);
+      return 0;
+    }
+    stats_keysInc(cache->stats);
+    break;
+  default:
+    evict_update(cache->evict, *list);
+    break;
+  }
   pthread_mutex_unlock(mutex);
   return value;
 }
@@ -143,7 +168,7 @@ int cache_delete(Cache cache, char* key) {
   return 1;
 }
 
-void cache_evict(Cache cache) {
+int cache_evict(Cache cache, pthread_mutex_t* listMutex) {
   Evict evict = cache->evict;
   evict_lock(evict);
   NodeEvict nodeEvict = evict_getLru(evict);
@@ -156,7 +181,7 @@ void cache_evict(Cache cache) {
     unsigned idx = evict_getListIdx(nodeEvict);
     pthread_mutex_t* mutex = 
       get_mutex_by_idx(cache, idx);
-    if(0 != pthread_mutex_trylock(mutex)) {
+    if(mutex != listMutex && 0 != pthread_mutex_trylock(mutex)) {
       nodeEvict = evict_getNextNode(nodeEvict);
       continue;
     }
@@ -164,12 +189,20 @@ void cache_evict(Cache cache) {
     evict_removeNode(evict, nodeEvict);
     list_remove_node(cache->listArr+idx, list);
     stats_keysDec(cache->stats);
-    pthread_mutex_unlock(mutex);
+    if(mutex != listMutex) {
+      pthread_mutex_unlock(mutex);
+    }
     nodeEvict = next;
   }
+  int res = evict_empty(evict);
   evict_unlock(evict);
+  return res;
+}
+
+char* cache_getStats(Cache cache) {
+  return stats_getStats(cache->stats, NULL);
 }
 
 int cache_empty(Cache cache) {
-  return stats_getKeys(cache->stats) == 0;
+  return evict_empty(cache->evict);
 }
