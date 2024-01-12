@@ -1,3 +1,5 @@
+//! @file
+
 #ifndef __STATS_H__
 #define __STATS_H__
 
@@ -45,7 +47,16 @@ void stats_keysDec(Stats stats);
 
 /**
  * Devuelve un string con las
- * estadísticas
+ * estadísticas.
+ * @param stats estructura con las estadisticas.
+ * @param listMutex se debe pasar el 
+ * mutex de la cache que esté tomado
+ * (un elemento de mutex_arr) al llamar
+ * la función.
+ * @return
+ * El string que devuelve la función tiene la
+ * siguiente forma:
+ * "OK PUTS=%"PRIu64" DELS=%"PRIu64" GETS=%"PRIu64"
 */
 char* stats_getStats(Stats stats, pthread_mutex_t* listMutex);
 

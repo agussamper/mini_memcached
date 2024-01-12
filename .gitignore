@@ -4,3 +4,5 @@ hashtable/avl/test.c
 .vscode
 tests/list_hashtable.c
 tests/list_test.c
+html
+latex

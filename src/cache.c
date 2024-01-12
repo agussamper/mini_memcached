@@ -108,6 +108,7 @@ int cache_insert(Cache cache,
     break;
   }
   pthread_mutex_unlock(mutex);
+  return 1;
 }
 
 char* cache_get(Cache cache, char* key) {
@@ -133,7 +134,7 @@ char* cache_get(Cache cache, char* key) {
     if(0 == res) {
       list_remove_node(list, *list);
       pthread_mutex_unlock(mutex);
-      return 0;
+      return value;
     }
     stats_keysInc(cache->stats);
     break;
