@@ -174,7 +174,7 @@ void* list_getValue(List* list,
       strcpy(val, node->value);
       char* toReturn =
         allocate_mem(
-          lenVal*sizeof(char),
+          lenVal*sizeof(char)+1,
           listMutex);
       strcpy(toReturn, val);
       return toReturn;
