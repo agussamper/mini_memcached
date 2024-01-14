@@ -36,6 +36,19 @@ void evict_init(Evict* evict_ptr) {
   assert(!pthread_mutex_init(&((*evict_ptr)->mutex), NULL));
 }
 
+void evict_destroy(Evict evict) {
+  NodeEvict aux = evict->lru;
+  NodeEvict toDelete;
+  while(aux != evict->mru) {
+    toDelete = aux;
+    aux = aux->next;
+    free(toDelete);
+  }
+  free(evict->mru);
+  pthread_mutex_destroy(&evict->mutex);
+  free(evict);
+}
+
 int evict_add(Evict evict, List list,
     unsigned listIdx, pthread_mutex_t* listMutex) {
   assert(evict);

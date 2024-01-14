@@ -27,6 +27,11 @@ Cache cache_create(
     HashFunction hash);
 
 /**
+ * Destruye la cache pasada por argumentos.
+*/
+void cache_destroy(Cache cache);
+
+/**
  * Devuelve la cantidad de slots en la cache.
 */
 int cache_size(Cache cache);

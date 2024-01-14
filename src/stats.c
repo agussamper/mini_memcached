@@ -26,6 +26,11 @@ Stats stats_init() {
   return stats;
 }
 
+void stats_destroy(Stats stats) {
+  pthread_mutex_destroy(&stats->mutex);
+  free(stats);
+}
+
 void stats_putsInc(Stats stats) {
   pthread_mutex_lock(&stats->mutex);
   stats->puts += 1;
@@ -59,6 +64,9 @@ void stats_keysDec(Stats stats) {
 char* stats_getStats(Stats stats, pthread_mutex_t* listMutex) {
   pthread_mutex_lock(&stats->mutex);
   char* statsinf = allocate_mem(sizeof(char)*200, listMutex);
+  if(!statsinf) {
+    return statsinf;
+  }
   char* s = "OK PUTS=%"PRIu64" DELS=%"PRIu64" GETS=%"PRIu64" KEYS=%"PRIu64"\0";
   sprintf(statsinf, s,
     stats->puts, stats->dels, stats->gets,

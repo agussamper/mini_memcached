@@ -106,13 +106,6 @@ void* mem(void* arg) {
       printf("insertando... i=%d, id=%d\n", i, id);
     }
   }
-  /*for(int i = 0; i < 10000000; i++) {
-    sprintf(clave+5, "%d", i);
-    cache_insert(cache, clave, strlen(clave), valor, lenval);
-    if(i % 100000 == 0) {
-      printf("insertando devuelta... i=%d, id=%d\n", i, id);
-    }
-  }*/
 }
 
 unsigned str_KRHash(const char *s) {
@@ -144,7 +137,7 @@ int main() {
   int numThreads = 10;
   pthread_t threads[numThreads];
   for (int i = 0; i < numThreads; i++) {
-	  pthread_create(threads+i, NULL, run, i + (void*)0);    
+	  pthread_create(threads+i, NULL, mem, i + (void*)0);    
   }
   for (int i = 0; i < numThreads; i++) {
     pthread_join(threads[i], NULL);
@@ -153,5 +146,6 @@ int main() {
   char* stats = cache_getStats(cache);
   printf("%s\n", stats);
   free(stats);
+  cache_destroy(cache);
   return 0;
 }

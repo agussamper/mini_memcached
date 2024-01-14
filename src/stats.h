@@ -16,6 +16,11 @@ typedef struct _Stats *Stats;
 Stats stats_init();
 
 /**
+ * Destruye la estructura stats
+*/
+void stats_destroy(Stats stats);
+
+/**
  * Incrementa en uno el campo puts de
  * stats
 */

@@ -17,6 +17,13 @@ typedef struct _NodeEvict *NodeEvict;
 void evict_init(Evict* evict_ptr);
 
 /**
+ * Destruye la estructura evict pasado por
+ * argumentos.
+ * No libera list de la estructura _NodeEvict.
+*/
+void evict_destroy(Evict evict);
+
+/**
  * Agrega list junto con listIdx en la
  * estructura evict.
  * @param evict al que se quiere agregar
