@@ -33,6 +33,8 @@ void* run(void* arg) {
     if(valorObt != NULL) {
       printf("clave=%s, valor=%s\n", clave, valorObt);
       free(valorObt);
+    } else {
+      printf("clave=%s no encontrada linea 37, id=%d\n", clave, id);
     }
   }
   char s[100];
@@ -60,6 +62,8 @@ void* run(void* arg) {
     if(valorObt != NULL) {
       printf("clave=%s, valor=%s\n", clave, valorObt);
       free(valorObt);
+    } else {
+      printf("clave=%s no encontrada linea 66, id=%d\n", clave, id);
     }
   }
   int res = cache_delete(cache, "clave0");

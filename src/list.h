@@ -74,9 +74,6 @@ int list_remove_key(List* list, char* key);
 /**
  * Busca el valor asociado a la clave pasada
  * por argumentos.
- * se debe pasar en listMutex el mutex de la
- * cache que esté tomado (un elemento de
- * mutex_arr) al llamar la función.
  * @param list puntero a la lista dónde se
  * quiere buscar la clave.
  * @param key clave que se quiere encontrar.

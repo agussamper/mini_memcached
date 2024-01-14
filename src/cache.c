@@ -119,6 +119,10 @@ char* cache_get(Cache cache, char* key) {
   List* list = cache->listArr+idx;
   pthread_mutex_lock(mutex);
   char* value = list_getValue(list, key, mutex);
+  if(!value) {
+    pthread_mutex_unlock(mutex);
+    return NULL;
+  }
 
   //Actualizo evict e intento volver a agregar
   //el elemento por si fué desalojado por
