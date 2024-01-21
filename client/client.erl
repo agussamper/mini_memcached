@@ -2,6 +2,17 @@
 
 -export([start/1, close/1, put/3, get/2]).
 
+-define(PUT,11).
+-define(DEL,12).
+-define(GET,13).
+-define(STATS,21).
+-define(OK,101).
+-define(EINVAL,111).
+-define(ENOTFOUND,112).
+-define(EBINARY,113).
+-define(EBIG,114).
+-define(EUNK, 115)
+
 % start: inet:socket_address() | inet:hostname() -> socket()
 % Se conecta a un servior en el puerto TCP 889,
 % en el host con dirección IP Address, Devuelve
@@ -9,7 +20,6 @@
 start(Address) ->
     {ok, Sock} = gen_tcp:connect(Address, 889,
                     [binary, {packet, 0}]),
-                        %,{active,false}]), %me da error
     Sock.
 
 % close: socket() -> ok
@@ -41,7 +51,7 @@ get_put_response(Sock) ->
 % 4 bytes que indican la longitud del valor
 % y por último está el valor
 put(Sock, K, V) ->
-    Code = 11,
+    Code = ?PUT,
     KeyBin = term_to_binary(K), 
     ValBin = term_to_binary(V),
     LengthK = byte_size(KeyBin),
@@ -54,7 +64,7 @@ put(Sock, K, V) ->
     gen_tcp:send(Sock, Packet),
     Response = get_put_response(Sock),
     case Response of
-        101 -> ok;
+       ?OK ? -> ok;
         _ -> error
     end.
 
@@ -102,7 +112,7 @@ get_get_response(Sock) ->
         Code = lists:sublist(ListData,1,1),
         io:format("getResponse: code=~p~n" ,[Code]),
         if
-            Code == [101] ->
+            Code == [?OK] ->
                 LenVal = lists:sublist(Data,2,4),
                 Len = trunc(lenToInt(LenVal,3)),
                 {_InfPack, Value} = lists:split(5,ListData),
@@ -120,7 +130,7 @@ get_get_response(Sock) ->
                         CurrLenValue,
                         Len)))}
                 end;
-            Code == [112] ->
+            Code == [?ENOTFOUND] ->
                 enotfound;
             true ->
                 error
@@ -133,7 +143,7 @@ get_get_response(Sock) ->
 % el valor asociado, si no lo encontró
 % devuelve enotfound y error en otro caso.
 get(Sock, K) ->
-    Code = 13,
+    Code = ?GET,
     KeyBin = term_to_binary(K),
     LengthK = byte_size(KeyBin),
     Packet = <<Code:8/unsigned-integer, 
