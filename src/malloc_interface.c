@@ -5,14 +5,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-extern Cache cache;
+extern Cache memcache;
 
-void* allocate_mem(size_t size,
-  pthread_mutex_t* listMutex) {
+void* allocate_mem(size_t size, pthread_mutex_t* listMutex) {
   void* ptr = malloc(size);
-  int cacheEmpty = cache_empty(cache);
+  int cacheEmpty = cache_empty(memcache);
   while(!ptr && !cacheEmpty) {   
-    cacheEmpty = cache_evict(cache, listMutex);
+    cacheEmpty = cache_evict(memcache, listMutex);
     ptr = malloc(size);
   }
   return ptr;
