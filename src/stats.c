@@ -67,7 +67,7 @@ char* stats_getStats(Stats stats, pthread_mutex_t* listMutex) {
   if(!statsinf) {
     return statsinf;
   }
-  char* s = "OK PUTS=%"PRIu64" DELS=%"PRIu64" GETS=%"PRIu64" KEYS=%"PRIu64"\0";
+  char* s = "OK PUTS=%"PRIu64" DELS=%"PRIu64" GETS=%"PRIu64" KEYS=%"PRIu64"\n\0";
   sprintf(statsinf, s,
     stats->puts, stats->dels, stats->gets,
     stats->keys);
