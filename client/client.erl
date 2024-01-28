@@ -19,7 +19,7 @@
 % en el host con dirección IP Address, Devuelve
 % el proceso asociado a la conexión.
 start(Address) ->
-    case gen_tcp:connect(Address, 889,
+    case gen_tcp:connect(Address, 8889,
         [binary, {packet,0}, {active, false}])
             of
         {ok, Sock} -> spawn(fun()->requestListener(Sock) end);
@@ -38,48 +38,70 @@ lenToInt([], -1) ->
     0.
 
 % getLen: sock() -> Int
-% Dado un socket, recive 4 bytes del mismo
+% Dado un socket, recibe 4 bytes del mismo
 % y aplica la función lenToInt
 getLen(Sock) ->
-    lenToInt(
+    {ok, BinLen} = gen_tcp:recv(Sock,4),
+    trunc(lenToInt(
         binary_to_list(
-            gen_tcp:recv(Sock,4)),
-            3).
+            BinLen),
+            3)).
+
+% getNum: sock(), Int -> Int
+% Dado un socket, lee Bytes bytes
+% del mismo, y aplica la función
+% lenToInt para obtener el entero
+getNum(Sock, Bytes)  ->
+    trunc(lenToInt(
+        binary_to_list(
+            gen_tcp:recv(Sock,Bytes)),
+            Bytes-1)).
 
 % response: sock(), atom, pid(), binary() -> atom | {atom, term}
 % Envia Packet al servidor a través de Sock,
-%  recive la respuesta del mismo y la devuelve
+%  recibe la respuesta del mismo y la devuelve
 response(Sock, {Ins, _Id, Packet}) ->
     gen_tcp:send(Sock, Packet),
+    {ok,Code} = gen_tcp:recv(Sock,1),
     case Ins of
         put -> 
-            gen_tcp:recv(Sock,1);            
-        get ->
-            case gen_tcp:recv(Sock,1) of
-                <<?OK>> ->
-                    Len = getLen(Sock), 
-                    Val = binary_to_term(
-                        gen_tcp:recv(Sock, Len)),
-                    {ok,Val};
-                <<?ENOTFOUND>> ->
-                    enotfound
-            end;
-        del ->
-            case gen_tcp:recv(Sock,1) of
+            case Code of
                 <<?OK>> -> ok;
-                <<?ENOTFOUND>> -> enotfound
-            end;
-        stats ->
-            case gen_tcp:recv(Sock,1) of
+                _ -> {error, Code}
+            end;            
+        get ->
+            case Code of
                 <<?OK>> ->
                     Len = getLen(Sock),
-                    binary_to_list(
-                        gen_tcp:recv(Sock, Len))
+                    io:format("~p~n",[Len]),
+                    {ok, BinVal} = gen_tcp:recv(Sock, Len),
+                    Val = binary_to_term(BinVal),
+                    {ok,Val};
+                <<?ENOTFOUND>> ->
+                    enotfound;
+                _ -> {error, Code}
+            end;
+        del ->
+            case Code of
+                <<?OK>> -> ok;
+                <<?ENOTFOUND>> -> enotfound;
+                _ -> {error, Code}
+            end;
+        stats ->
+            case Code of
+                <<?OK>> ->
+                    Puts = integer_to_list(getNum(Sock, getLen(Sock))),
+                    Dels = integer_to_list(getNum(Sock, getLen(Sock))),
+                    Gets = integer_to_list(getNum(Sock, getLen(Sock))),
+                    Keys = integer_to_list(getNum(Sock, getLen(Sock))),
+                    "OK PUTS=" ++ Puts ++ " DELS=" ++ Dels ++ 
+                        " GETS=" ++ Gets ++ " KEYS=" ++ Keys;
+                _ -> {error, Code}
             end            
     end.
 
 % requestListener: Sock -> ok
-% Queda en espera hasta que recibe recibe
+% Queda en espera hasta que recibe
 % instrucciones para mandar al servidor
 % via Sock, luego vuelve a su estado
 % inicial. En el caso que la instrucción
