@@ -1,6 +1,7 @@
 -module(client).
 
--export([start/1, close/1, put/3, get/2]).
+-export([start/1, close/1, put/3,
+    get/2, del/2, stats/1]).
 
 -define(PUT,11).
 -define(DEL,12).
@@ -11,61 +12,18 @@
 -define(ENOTFOUND,112).
 -define(EBINARY,113).
 -define(EBIG,114).
--define(EUNK, 115)
+-define(EUNK, 115).
 
 % start: inet:socket_address() | inet:hostname() -> socket()
 % Se conecta a un servior en el puerto TCP 889,
 % en el host con dirección IP Address, Devuelve
-% el socket de la conexión.
+% el proceso asociado a la conexión.
 start(Address) ->
-    {ok, Sock} = gen_tcp:connect(Address, 889,
-                    [binary, {packet, 0}]),
-    Sock.
-
-% close: socket() -> ok
-% Dado un socket cierra la conección.
-close(Sock) ->
-    gen_tcp:close(Sock).
-
-% list_length: List -> Int
-% Dada una lista devuelve la cantidad
-% de elementos de la misma.
-list_length([]) ->
-    0;
-list_length([_First|Rest]) ->
-    1 + list_length(Rest).
-
-% get_put_response: socket() -> int
-% Obtiene la respuesta al pedido put
-get_put_response(Sock) ->  
-    receive
-    {tcp, Sock, Data} ->
-        binary_to_term(Data)
-    end.  
-
-% put: socket(), Any, Any -> ok | error
-% Manda un paquete por Sock en modo binario,
-% en el cual en el primer byte está el código,
-% los siguientes 4 la longitud de la clave,
-% luego la clave, luego de la clave hay 
-% 4 bytes que indican la longitud del valor
-% y por último está el valor
-put(Sock, K, V) ->
-    Code = ?PUT,
-    KeyBin = term_to_binary(K), 
-    ValBin = term_to_binary(V),
-    LengthK = byte_size(KeyBin),
-    LengthV = byte_size(ValBin),
-    Packet = <<Code:8/big-unsigned-integer,
-             LengthK:32/big-unsigned-integer,
-             KeyBin/binary,
-             LengthV:32/big-unsigned-integer,
-             ValBin/binary>>,
-    gen_tcp:send(Sock, Packet),
-    Response = get_put_response(Sock),
-    case Response of
-       ?OK ? -> ok;
-        _ -> error
+    case gen_tcp:connect(Address, 889,
+        [binary, {packet,0}, {active, false}])
+            of
+        {ok, Sock} -> spawn(fun()->requestListener(Sock) end);
+        {error, Reason} -> {error, Reason}
     end.
 
 % lenToInt: List, Int -> Int
@@ -79,75 +37,147 @@ lenToInt([Head|Rest], X) ->
 lenToInt([], -1) ->
     0.
 
-% readData: List, Int, Int -> List
-% Lee del socket y lo agrega a Value hasta
-% que su longitud sea igual a LenToAchive
-% devuelve la lista resultante.
-readData(Value, LenValue, LenToAchive) ->
-    receive
-    {tcp,_Sock,Data} ->
-        ListData = binary_to_list(Data),
-        LenListData = list_length(ListData),
-        Val = lists:append(Value, ListData),
-        ValLen = LenListData + LenValue,
-        if 
-            ValLen == LenToAchive ->
-                Val;
-            ValLen >= LenToAchive ->
-                lists:sublist(Val, 1, LenToAchive);
-            ValLen < LenToAchive ->
-                readData(Val, ValLen, LenToAchive)
-        end
+% getLen: sock() -> Int
+% Dado un socket, recive 4 bytes del mismo
+% y aplica la función lenToInt
+getLen(Sock) ->
+    lenToInt(
+        binary_to_list(
+            gen_tcp:recv(Sock,4)),
+            3).
+
+% response: sock(), atom, pid(), binary() -> atom | {atom, term}
+% Envia Packet al servidor a través de Sock,
+%  recive la respuesta del mismo y la devuelve
+response(Sock, {Ins, _Id, Packet}) ->
+    gen_tcp:send(Sock, Packet),
+    case Ins of
+        put -> 
+            gen_tcp:recv(Sock,1);            
+        get ->
+            case gen_tcp:recv(Sock,1) of
+                <<?OK>> ->
+                    Len = getLen(Sock), 
+                    Val = binary_to_term(
+                        gen_tcp:recv(Sock, Len)),
+                    {ok,Val};
+                <<?ENOTFOUND>> ->
+                    enotfound
+            end;
+        del ->
+            case gen_tcp:recv(Sock,1) of
+                <<?OK>> -> ok;
+                <<?ENOTFOUND>> -> enotfound
+            end;
+        stats ->
+            case gen_tcp:recv(Sock,1) of
+                <<?OK>> ->
+                    Len = getLen(Sock),
+                    binary_to_list(
+                        gen_tcp:recv(Sock, Len))
+            end            
     end.
 
-% get_get_response: Sock -> {term, Any} | term
-% Dado un socket obtiene la respuesta del get del
-% servidor, devuelve {ok, Any} si respondió con
-% exito a la petición, einval si no encontró el
-% valor asociado a la clave y error en otro caso    
-get_get_response(Sock) ->
+% requestListener: Sock -> ok
+% Queda en espera hasta que recibe recibe
+% instrucciones para mandar al servidor
+% via Sock, luego vuelve a su estado
+% inicial. En el caso que la instrucción
+% sea close sale de la función devolviendo
+% ok 
+requestListener(Sock) ->
     receive
-    {tcp,Sock,Data} ->
-        ListData = binary_to_list(Data),
-        Code = lists:sublist(ListData,1,1),
-        io:format("getResponse: code=~p~n" ,[Code]),
-        if
-            Code == [?OK] ->
-                LenVal = lists:sublist(Data,2,4),
-                Len = trunc(lenToInt(LenVal,3)),
-                {_InfPack, Value} = lists:split(5,ListData),
-                CurrLenValue = list_length(Value),
-                if
-                    Len == CurrLenValue ->
-                        {ok, binary_to_term(list_to_binary(Value))};
-                    Len <= CurrLenValue ->
-                        binary_to_term(list_to_binary(
-                            lists:sublist(Value, 1, LenToAchive)));
-                    CurrLenValue < Len -> 
-                        {ok, 
-                        binary_to_term(list_to_binary(
-                        readData(Value,
-                        CurrLenValue,
-                        Len)))}
-                end;
-            Code == [?ENOTFOUND] ->
-                enotfound;
-            true ->
-                error
-        end
+        {Ins, Id, Packet} ->
+            Id!response(Sock, {Ins, Id, Packet}),
+            requestListener(Sock);
+        close ->
+            gen_tcp:close(Sock)
     end.
 
-% get: sock(), Any -> {ok, Any} | atom
-% Dado un socket y una clave, si encontró
-% el valor asociado a la clave devuelve
-% el valor asociado, si no lo encontró
-% devuelve enotfound y error en otro caso.
-get(Sock, K) ->
+% close: socket() -> ok
+% Cierra la conexión asociada con el id
+% del proceso dado.
+close(Pid) ->
+    Pid!close.
+
+recv_resp() ->
+    receive
+        Data->Data
+    end.
+
+% put: pid(), Any, Any -> ok | error
+% Agrega la clave valor en modo binario a 
+% la instancia de cache asociado a pid,
+% en el cual en el primer byte está el código,
+% los siguientes 4 la longitud de la clave,
+% luego la clave, luego de la clave hay 
+% 4 bytes que indican la longitud del valor
+% y por último está el valor
+put(Pid, K, V) ->
+    Code = ?PUT,
+    KeyBin = term_to_binary(K), 
+    ValBin = term_to_binary(V),
+    LengthK = byte_size(KeyBin),
+    LengthV = byte_size(ValBin),
+    Packet = <<Code:8/unsigned-integer,
+             LengthK:32/big-unsigned-integer,
+             KeyBin/binary,
+             LengthV:32/big-unsigned-integer,
+             ValBin/binary>>,
+    case is_process_alive(Pid) of
+        true ->
+            Pid!{put,self(),Packet},
+            recv_resp()
+    end.
+
+% get: pid(), Any -> {ok, Any} | atom
+% Dado un id de un proceso y una clave,
+% si encontró el valor asociado a la clave
+% de la instancia de cache asociada a pid
+% devuelve el valor asociado, si no lo encontró
+% devuelve enotfound.
+get(Pid, K) ->
     Code = ?GET,
     KeyBin = term_to_binary(K),
     LengthK = byte_size(KeyBin),
     Packet = <<Code:8/unsigned-integer, 
                LengthK:32/big-unsigned-integer,
                KeyBin/binary>>,
-    gen_tcp:send(Sock, Packet),
-    get_get_response(Sock).
+    case is_process_alive(Pid) of 
+        true ->
+            Pid!{get,self(),Packet},
+            recv_resp()
+    end.
+
+% del: pid(), Ant -> {ok, Any} | atom
+% Dado un id de un proceso y una clave,
+% si encontró la clave de la instancia 
+% de cache asociada a pid elimina la
+% clave y su valor asociado de la misma
+% y devuelve ok, si no lo encuentra
+% devuelve enotfound
+del(Pid, K) ->
+    Code = ?DEL,
+    KeyBin = term_to_binary(K),
+    LengthK = byte_size(KeyBin),
+    Packet = <<Code:8/unsigned-integer,
+               LengthK:32/big-unsigned-integer,
+               KeyBin/binary>>,
+    case is_process_alive(Pid) of
+        true ->
+            Pid!{del,self(),Packet},
+            recv_resp()
+    end.
+
+% del: pid(), Ant -> {ok, Any} | atom
+% Dado un id de un proceso, devuelve
+% las estadísticas de la instancia 
+% de cache asociada al pid.
+stats(Pid) ->
+    Code = ?STATS,
+    Packet = <<Code:8/unsigned-integer>>,
+    case is_process_alive(Pid) of 
+        true ->
+            Pid!{stats,self(),Packet},
+            recv_resp()
+    end.
