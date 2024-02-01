@@ -129,6 +129,20 @@ recv_resp() ->
         Data->Data
     end.
 
+% sendPacket: pid(), atom, binary() -> atom | {atom, term}
+% Envia un paquete y una instrucción al
+% proceso indicado en Pid, espera una respuesta
+% y luego devuelve la misma
+sendPacket(Pid, Ins, Packet) ->
+    case is_process_alive(Pid) of
+        true ->
+            Pid!{Ins,self(),Packet},
+            recv_resp();
+        false ->
+            io:format("Proces ~p is not alive~n",
+                [Pid])
+    end.
+
 % put: pid(), Any, Any -> ok | error
 % Agrega la clave valor en modo binario a 
 % la instancia de cache asociado a pid,
@@ -150,12 +164,8 @@ put(Pid, K, V) ->
              LengthK:32/big-unsigned-integer,
              KeyBin/binary,
              LengthV:32/big-unsigned-integer,
-             ValBin/binary>>,
-    case is_process_alive(Pid) of
-        true ->
-            Pid!{put,self(),Packet},
-            recv_resp()
-    end.
+             ValBin/binary>>,    
+    sendPacket(Pid, put, Packet).
 
 % get: pid(), Any -> {ok, Any} | atom
 % Dado un id de un proceso y una clave,
@@ -170,11 +180,7 @@ get(Pid, K) ->
     Packet = <<Code:8/unsigned-integer, 
                LengthK:32/big-unsigned-integer,
                KeyBin/binary>>,
-    case is_process_alive(Pid) of 
-        true ->
-            Pid!{get,self(),Packet},
-            recv_resp()
-    end.
+    sendPacket(Pid, get, Packet).
 
 % del: pid(), Ant -> {ok, Any} | atom
 % Dado un id de un proceso y una clave,
@@ -190,11 +196,7 @@ del(Pid, K) ->
     Packet = <<Code:8/unsigned-integer,
                LengthK:32/big-unsigned-integer,
                KeyBin/binary>>,
-    case is_process_alive(Pid) of
-        true ->
-            Pid!{del,self(),Packet},
-            recv_resp()
-    end.
+    sendPacket(Pid, del, Packet).
 
 % del: pid(), Ant -> {ok, Any} | atom
 % Dado un id de un proceso, devuelve
@@ -203,8 +205,4 @@ del(Pid, K) ->
 stats(Pid) ->
     Code = ?STATS,
     Packet = <<Code:8/unsigned-integer>>,
-    case is_process_alive(Pid) of 
-        true ->
-            Pid!{stats,self(),Packet},
-            recv_resp()
-    end.
+    sendPacket(Pid, stats, Packet).
