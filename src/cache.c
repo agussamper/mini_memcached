@@ -94,7 +94,8 @@ pthread_mutex_t* get_mutex_by_idx(
 
 int cache_insert(Cache cache, 
   char *key, unsigned key_length, 
-  char *value, unsigned value_length
+  char *value, unsigned value_length,
+  int isBin
 ) {
   stats_putsInc(cache->stats);
   unsigned idx = get_idx(cache, key);
@@ -104,7 +105,7 @@ int cache_insert(Cache cache,
   pthread_mutex_lock(mutex);
   int res = list_add(list,
     key, key_length, value,
-    value_length, mutex);  
+    value_length, isBin, mutex);  
   switch (res) {
   case 0:
     pthread_mutex_unlock(mutex);
@@ -146,7 +147,7 @@ char* cache_get(Cache cache, char* key) {
   //allocate_mem en list_getValue
   int res = list_add(list,
     key, strlen(key), value,
-    strlen(value), mutex);  
+    strlen(value), isBin, mutex);  
   assert(res != 0); //res no debería ser 0
   switch (res) {
   case 1:

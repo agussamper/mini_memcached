@@ -50,13 +50,13 @@ int mk_lsock(in_port_t puerto)
 
 int main()
 {
-    uid_t uid = getuid();
-    if(uid){
-        quit("SE REQUIEREN PERMISOS DE SUPERUSUARIO");
-    }
+  //uid_t uid = getuid();
+  //if(uid){
+  //    quit("SE REQUIEREN PERMISOS DE SUPERUSUARIO");
+  //}
 	int tSock, bSock;
-	tSock = mk_lsock(888);
-    bSock = mk_lsock(889);
+	tSock = mk_lsock(8888);
+  bSock = mk_lsock(8889);
 	setuid(1000);
-    memcached_cache_start(tSock,bSock);
+  memcached_cache_start(tSock,bSock);
 }

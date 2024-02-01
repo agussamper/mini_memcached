@@ -50,10 +50,11 @@ int cache_size(Cache cache);
  * @param value_length longitud del valor.
  * @return Si pude insertar retorna 1, en caso
  * contrario 0.
- */
+ */ //TODO: documentar isBin, etc
 int cache_insert(Cache table, 
     char *key, unsigned key_length, 
-    char *value, unsigned value_length);
+    char *value, unsigned value_length,
+    int isBin);
 
 /**
  * Retorna un puntero a una copia del

@@ -19,7 +19,7 @@
 % en el host con dirección IP Address, Devuelve
 % el proceso asociado a la conexión.
 start(Address) ->
-    case gen_tcp:connect(Address, 889,
+    case gen_tcp:connect(Address, 8889,
         [binary, {packet,0}, {active, false}])
             of
         {ok, Sock} -> spawn(fun()->requestListener(Sock) end);
@@ -42,6 +42,7 @@ lenToInt([], -1) ->
 % y aplica la función lenToInt
 getLen(Sock) ->
     {ok, BinLen} = gen_tcp:recv(Sock,4),
+    io:format("BinLenList=~p~n", [binary_to_list(BinLen)]),
     trunc(lenToInt(
         binary_to_list(
             BinLen),
@@ -75,6 +76,7 @@ response(Sock, {Ins, _Id, Packet}) ->
                     Len = getLen(Sock),
                     io:format("~p~n",[Len]),
                     {ok, BinVal} = gen_tcp:recv(Sock, Len),
+                    io:format("ya lei~n"),
                     Val = binary_to_term(BinVal),
                     {ok,Val};
                 <<?ENOTFOUND>> ->
@@ -141,6 +143,9 @@ put(Pid, K, V) ->
     ValBin = term_to_binary(V),
     LengthK = byte_size(KeyBin),
     LengthV = byte_size(ValBin),
+    io:format("LengthK=~p~nKeyBin=~p~nLengthV=~p~nValBin=~p~n",
+        [LengthK, KeyBin, 
+            LengthV, ValBin]),
     Packet = <<Code:8/unsigned-integer,
              LengthK:32/big-unsigned-integer,
              KeyBin/binary,

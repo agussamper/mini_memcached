@@ -5,13 +5,15 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
 typedef struct Node {
   char* key;
   char* value;
+  uint32_t lenVal; 
+  int isBin; 
   struct Node* next;
-  struct Node* prev;
-
+  struct Node* prev;    
   /**
    * Puntero al nodo que apunta a este nodo
    * en la estructura evict  
@@ -62,6 +64,7 @@ int isInList(List* list, char *key) {
 int list_add(List* list,
     char* key, unsigned klen,
     char* value, unsigned vlen,
+    int isBin,
     pthread_mutex_t* listMutex) {
   assert(list != NULL);  
   char* newValue = allocate_mem(
@@ -74,6 +77,8 @@ int list_add(List* list,
   if(isInList(&node, key)) {
     free(node->value);    
     node->value = newValue;
+    node->lenVal = vlen;
+    node->isBin = isBin;
     Node *top = *list;
     if(top == node) {
       return 2;
@@ -109,6 +114,8 @@ int list_add(List* list,
   strcpy(newKey, key);
   newNode->key = newKey;
   newNode->value = newValue;
+  newNode->lenVal = vlen;
+  newNode->isBin = isBin;
 
   *list = newNode;
   return 1;

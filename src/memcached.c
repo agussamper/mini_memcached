@@ -54,7 +54,8 @@ void epfd_dstr(epollfd fd){
 		return -1;						\
 	rc; })
 
-
+//TODO: solucionar que servidor se cierra cuando el cliente cierra
+// la conexion
 void text_handle(epollfd* evd, char *toks[3], int lens[3], int ntok){
 	int fd = evd->fd;
 	if(!strcmp(toks[0],"PUT")){
@@ -74,8 +75,7 @@ void text_handle(epollfd* evd, char *toks[3], int lens[3], int ntok){
 			write(fd,"EINVAL\n",7);
 			return;
 		}
-		char* val = malloc(sizeof(char) * 2024); 
-		val = cache_get(memcache,toks[1]);
+		char* val = cache_get(memcache,toks[1]);
 		if(val == NULL){
 			free(val);
 			write(fd,"ENOTFOUND\n",10);
@@ -106,7 +106,8 @@ void text_handle(epollfd* evd, char *toks[3], int lens[3], int ntok){
 			return;
 		}
 		char* response = cache_getStats(memcache);	
-		write(fd,response,strlen(response));		
+		write(fd,response,strlen(response));
+		free(response);	
 		return;
 	}else{
 			write(fd,"EINVAL\n",7);
@@ -202,175 +203,97 @@ int text_consume(epollfd* evd, char buf[2048])
 
 int bin_consume(epollfd* evd){
 	int fd = evd->fd;
-	/*
-	char* buf = malloc(sizeof(char) * 6);	
-	int rc = read(fd, buf, 5);
-	char com = buf[0];
-	switch (com)
+	char comm;
+	int rc = READ(fd,&comm,1);
+  char* buf;
+  char* key;
+  int lenk;
+	switch (comm)
 	{
 	case 11:
-		int lenk = *(int*)buf+1;
-		char* key = malloc(sizeof(char) * lenk+1);
-		int rc = read(fd, key,lenk);
-		if(rc!=lenk){
+		buf = malloc(5);
+		rc = READ(fd,buf,4);
+		if(rc < 4){
 			char response = 111;
 			write(fd,&response,1);
-      		printf("keylen error lenk: %d actual:%d\n",lenk,rc);
 			return -1;
 		}
-		int lenv = ntohl(*(int*)buf+5+lenk);
-		char* val = malloc(sizeof(char) * lenv+1);
-		rc = read(fd, val,lenv);
-		if(rc!=lenv){
+	  lenk = ntohl(*(int*)buf);
+		key = malloc(lenk+1);
+		rc = READ(fd,key,lenk);
+		if(rc != lenk){
 			char response = 111;
 			write(fd,&response,1);
-      		printf("vallen error lenv: %d actual:%d\n",lenv,rc);
+			printf("keylen error lenk: %d actual:%d\n",lenk,rc);
 			return -1;
 		}
-		if(cache_insert(memcache,key,lenk,val,lenv)){
+		rc = READ(fd,buf,4);
+		if(rc < 4){
+			char response = 111;
+			write(fd,&response,1);
+			return -1;
+		}
+		int lenv = ntohl(*(int*)buf);
+		char* value = malloc(lenv+1);
+		rc = READ(fd,value,lenv);
+		if(rc != lenv){
+			char response = 111;
+			write(fd,&response,1);
+			printf("vallen error lenv: %d actual:%d\n",lenv,rc);
+			return -1;
+		}
+		if(cache_insert(memcache,key,lenk,value,lenv)){
 			char response = 101;
 			write(fd,&response,1);
 		}
 		else{
 			char response = 111;
 			write(fd,&response,1);
-            printf("insert error\n");
+			printf("insert error\n");
 			return -1;	
 		}
 		break;
 	case 12:
-	
-		int len = ntohl(*(int*)buf+1);
-		free(buf);
-		char* key = malloc(sizeof(char) * len+1);
-		read(fd, key,len);
-	
-
 		break;
-	case 13:
-		int len = ntohl(*(int*)buf+1);
-		free(buf);
-		char* getkey = malloc(sizeof(char) * len+1);
-		int rcget =read(fd, getkey,len);
-		if(rcget!=lenv){
+	case 13:    
+    buf = malloc(5);
+		rc = READ(fd,buf,4);
+		if(rc < 4){
 			char response = 111;
 			write(fd,&response,1);
 			return -1;
 		}
-		char* resp = cache_get(memcache,getkey);
-		if(resp = NULL){
-			char response = 112;
+		lenk = ntohl(*(int*)buf);
+		key = malloc(lenk+1);
+		rc = READ(fd,key,lenk);
+		if(rc != lenk){
+			char response = 111;
 			write(fd,&response,1);
+			printf("keylen error lenk: %d actual:%d\n",lenk,rc);
 			return -1;
 		}
-		len = strlen(resp) + 6;
-		char* response = malloc(sizeof(char) * len);
-		response[0] = 101;
-		response[1] =  htonl(strlen(resp));
-		strcpy(response+5,resp);
-		write(fd,response,len);
+    char* resp = cache_get(memcache,key);
+    if(NULL == resp){
+      char response = 112;
+      write(fd,&response,1);
+      return -1;
+    }
+    int len = strlen(resp) + 5;
+    char* response = malloc(sizeof(char) * len);
+    response[0] = 101;
+		uint32_t bigLen = strlen(resp);		
+		for(int i = 4; i > 0; i--) {
+			response[i] = bigLen & 0xFF;
+			bigLen = bigLen >> 8;
+		}
+    strcpy(response+5,resp);
+    write(fd,response,len);
 		break;
 	case 21:
-		free(buf);
 		break;
 	default:
-			write(fd,"EINVAL\n",7);
-			return -1;
 		break;
-	}	
-	*/
-
-
-
-		char comm;
-		int rc = READ(fd,&comm,1);
-    char* buf;
-    char* key;
-    int lenk;
-		switch (comm)
-		{
-		case 11:
-			buf = malloc(5);
-			rc = READ(fd,buf,4);
-			if(rc < 4){
-				char response = 111;
-				write(fd,&response,1);
-				return -1;
-			}
-		  lenk = ntohl(*(int*)buf);
-			key = malloc(lenk+1);
-			rc = READ(fd,key,lenk);
-			if(rc != lenk){
-				char response = 111;
-				write(fd,&response,1);
-				printf("keylen error lenk: %d actual:%d\n",lenk,rc);
-				return -1;
-			}
-			rc = READ(fd,buf,4);
-			if(rc < 4){
-				char response = 111;
-				write(fd,&response,1);
-				return -1;
-			}
-			int lenv = ntohl(*(int*)buf);
-			char* value = malloc(lenv+1);
-			rc = READ(fd,value,lenv);
-			if(rc != lenv){
-				char response = 111;
-				write(fd,&response,1);
-				printf("vallen error lenv: %d actual:%d\n",lenv,rc);
-				return -1;
-			}
-			
-			if(cache_insert(memcache,key,lenk,value,lenv)){
-				char response = 101;
-				write(fd,&response,1);
-			}
-			else{
-				char response = 111;
-				write(fd,&response,1);
-				printf("insert error\n");
-				return -1;	
-			}
-			break;
-		case 12:
-			break;
-		case 13:
-      
-      buf = malloc(5);
-			rc = READ(fd,buf,4);
-			if(rc < 4){
-				char response = 111;
-				write(fd,&response,1);
-				return -1;
-			}
-			lenk = ntohl(*(int*)buf);
-			key = malloc(lenk+1);
-			rc = READ(fd,key,lenk);
-			if(rc != lenk){
-				char response = 111;
-				write(fd,&response,1);
-				printf("keylen error lenk: %d actual:%d\n",lenk,rc);
-				return -1;
-			}
-      char* resp = cache_get(memcache,key);
-      if(resp = NULL){
-            char response = 112;
-            write(fd,&response,1);
-            return -1;
-          }
-      int len = strlen(resp) + 6;
-      char* response = malloc(sizeof(char) * len);
-      response[0] = 101;
-      response[1] =  htonl(strlen(resp));
-      strcpy(response+5,resp);
-      write(fd,response,len);
-			break;
-		case 21:
-			break;
-		default:
-			break;
-		}
+	}
   return 0;
 	
 }
@@ -492,7 +415,7 @@ void server_start(){
 	}
 	pthread_t eptext;
 	pthread_t epbin;
-//	pthread_create(&eptext,NULL,text_epoll, (void*) (conqueue));
+	pthread_create(&eptext,NULL,text_epoll, (void*) (conqueue));
 	pthread_create(&epbin,NULL,bin_epoll, (void*) (conqueue));
 	printf("hilos creados \n");
 	pthread_join(epbin,NULL);

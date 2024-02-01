@@ -26,7 +26,9 @@ int list_empty(List list);
 
 /**
  * Agrega la clave y el valor pasadas
- * por argumento a la lista, si la clave
+ * por argumento a la lista, además de la
+ * longitud del valor y si los datos están
+ * en modo binario o no. Si la clave
  * ya se encuentra en la lista sobreescribe
  * el valor asociado a la misma. Si se 
  * sobreescribe o se agrega, el nodo
@@ -40,6 +42,8 @@ int list_empty(List list);
  * @param value valor que se quiere agregar
  * a list.
  * @param vlen longitud del valor.
+ * @param isBin Pasar 1 si lo que se guarda
+ * está en modo binario y 0 si no
  * @param listMutex se debe pasar el 
  * mutex de la cache que esté tomado
  * (un elemento de mutex_arr) al llamar
@@ -51,6 +55,7 @@ int list_empty(List list);
 int list_add(List* list,
   char* key, unsigned klen,
   char* value, unsigned vlen,
+  int isBin,
   pthread_mutex_t* listMutex);
 
 /**
