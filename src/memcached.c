@@ -451,7 +451,7 @@ void server_start(){
 
 }
 
-unsigned str_KRHash(const char *s, u_int32_t len) {
+unsigned str_KRHash(const char *s, uint32_t len) {
   unsigned hashval;
   uint32_t i = 0;
   for (hashval = 0;i<len; ++s) {
