@@ -1,5 +1,6 @@
 #include "list.h"
 #include "malloc_interface.h"
+#include "arr_func.h"
 
 #include <stdlib.h>
 #include <assert.h>
@@ -10,6 +11,7 @@
 typedef struct Node {
   char* key;
   char* value;
+  uint32_t lenKey;
   uint32_t lenVal; 
   int isBin; 
   struct Node* next;
@@ -170,20 +172,27 @@ void list_remove_node(List* list, List lNode) {
   free(node);
 }
 
-void* list_getValue(List* list,
+ValData* list_getValue(List* list,
     char* key, 
     pthread_mutex_t* listMutex) {
   Node* node = *list;
   for(; node != NULL; node = node->next) {
     if(0 == strcmp(key, node->key)) {
-      int lenVal = strlen(node->value);
-      char val[lenVal+1];
-      strcpy(val, node->value);
-      char* toReturn =
+      uint32_t lenVal = node->lenVal;
+      char val[lenVal];
+      arrcpy(val, node->value, lenVal);
+      int isBin = node->isBin;      
+      ValData* toReturn =
         allocate_mem(
-          lenVal*sizeof(char)+1,
+          sizeof(ValData), listMutex);
+      char* valCpy =
+        allocate_mem(
+          sizeof(char)*lenVal,
           listMutex);
-      strcpy(toReturn, val);
+        arrcpy(valCpy, val, lenVal);
+        toReturn->isBin = isBin;
+        toReturn->valSize = lenVal;
+        toReturn->valSize = valCpy;
       return toReturn;
     }
   }

@@ -4,9 +4,16 @@
 #define __LIST_H__
 
 #include <pthread.h>
+#include <stdint.h>
 
 typedef struct Node *List;
 typedef struct _NodeEvict *NodeEvict;
+
+typedef struct ValData {
+  char* value;
+  uint32_t valSize;
+  int isBin;
+} ValData;
 
 /**
  * Devuelve una lista vacia.
@@ -88,9 +95,10 @@ int list_remove_key(List* list, char* key);
  * la función.
  * @return
  * si encuentra tal valor devuelve una copia
- * del mismo, si no devuelve NULL.
+ * del mismo, en una estructura de tipo
+ * ValData, si no lo encuentra devuelve NULL.
 */
-void* list_getValue(List* list, char* key,
+ValData* list_getValue(List* list, char* key,
   pthread_mutex_t* listMutex);
 
 /**
