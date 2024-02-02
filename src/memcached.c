@@ -242,7 +242,7 @@ int bin_consume(epollfd* evd){
 			printf("vallen error lenv: %d actual:%d\n",lenv,rc);
 			return -1;
 		}
-		if(cache_insert(memcache,key,lenk,value,lenv)){
+		if(cache_insert(memcache,key,lenk,value,lenv,1)){
 			char response = 101;
 			write(fd,&response,1);
 		}
@@ -272,21 +272,21 @@ int bin_consume(epollfd* evd){
 			printf("keylen error lenk: %d actual:%d\n",lenk,rc);
 			return -1;
 		}
-    char* resp = cache_get(memcache,key);
+    ValData* resp = cache_get(memcache,key);
     if(NULL == resp){
       char response = 112;
       write(fd,&response,1);
       return -1;
     }
-    int len = strlen(resp) + 5;
-    char* response = malloc(sizeof(char) * len);
+	uint32_t bigLen = resp->valSize;		
+    long len = bigLen + 5;
+    char* response = malloc(len);
     response[0] = 101;
-		uint32_t bigLen = strlen(resp);		
-		for(int i = 4; i > 0; i--) {
-			response[i] = bigLen & 0xFF;
-			bigLen = bigLen >> 8;
-		}
-    strcpy(response+5,resp);
+	for(int i = 4; i > 0; i--) {
+		response[i] = bigLen & 0xFF;
+		bigLen = bigLen >> 8;
+	}
+    arrcpy(response+5,resp->value);
     write(fd,response,len);
 		break;
 	case 21:
@@ -451,10 +451,12 @@ void server_start(){
 
 }
 
-unsigned str_KRHash(const char *s) {
+unsigned str_KRHash(const char *s, u_int32_t len) {
   unsigned hashval;
-  for (hashval = 0; *s != '\0'; ++s) {
+  uint32_t i = 0;
+  for (hashval = 0;i<len; ++s) {
     hashval = *s + 31 * hashval;
+	i++;
   }
   return hashval;
 }

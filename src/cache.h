@@ -7,7 +7,7 @@
 #include "stats.h"
 
 // Funcion hash
-typedef unsigned (*HashFunction)(const char* data);
+typedef unsigned (*HashFunction)(const char* data,int len);
 
 typedef struct _Cache *Cache;
 

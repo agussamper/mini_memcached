@@ -78,8 +78,8 @@ int cache_size(Cache cache) {
  * Devuelve el indice de la cache
  * correspondiente a key.
 */
-unsigned get_idx(Cache cache, char* key) {
-  return cache->hash(key) % cache->size;
+unsigned get_idx(Cache cache, char* key, uint32_t len) {
+  return cache->hash(key,len) % cache->size;
 }
 
 /**
@@ -98,7 +98,7 @@ int cache_insert(Cache cache,
   int isBin
 ) {
   stats_putsInc(cache->stats);
-  unsigned idx = get_idx(cache, key);
+  unsigned idx = get_idx(cache, key,key_length);
   pthread_mutex_t* mutex = 
     get_mutex_by_idx(cache, idx);
   List* list = cache->listArr+idx;   
@@ -131,7 +131,7 @@ int cache_insert(Cache cache,
 
 char* cache_get(Cache cache, char* key) {
   stats_getsInc(cache->stats);
-  unsigned idx = get_idx(cache, key);
+  unsigned idx = get_idx(cache, key,keyLen);
   pthread_mutex_t* mutex = 
     get_mutex_by_idx(cache, idx);  
   List* list = cache->listArr+idx;
@@ -170,7 +170,7 @@ char* cache_get(Cache cache, char* key) {
 
 int cache_delete(Cache cache, char* key) {
   stats_delsInc(cache->stats);
-  unsigned idx = get_idx(cache, key);
+  unsigned idx = get_idx(cache, key, keyLen);
   pthread_mutex_t* mutex = 
     get_mutex_by_idx(cache, idx);
   List* list = cache->listArr+idx;
