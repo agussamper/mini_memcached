@@ -21,13 +21,6 @@ Cache memcache;
 int textsock;
 int binsock;
 
-/*
-PUT A B
-GET A
-
-
-*/
-
 typedef struct _epollfd{
 	int type;
 	// 0 : bin
@@ -77,16 +70,16 @@ void text_handle(epollfd* evd, char *toks[3], int lens[3], int ntok){
 			write(fd,"EINVAL\n",7);
 			return;
 		}
-		char* val = cache_get(memcache,
+		ValData* val = cache_get(memcache,
 		 	toks[1], strlen(toks[1]));
 		if(val == NULL){
-			free(val);
 			write(fd,"ENOTFOUND\n",10);
 			return;
 		}
 		char res[2024];
 		sprintf(res,"OK %s\n",val);
 		write(fd,res,strlen(res));
+		free(val->value);
 		free(val);
 		return;
 	}
@@ -286,6 +279,8 @@ int bin_consume(epollfd* evd){
 		}
     arrcpy(response+5,resp->value);
     write(fd,response,len);
+		free(resp->value);
+		free(resp);
 		break;
 	case STATS:
 		break;
