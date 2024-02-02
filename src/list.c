@@ -6,7 +6,6 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdint.h>
 
 typedef struct Node {
   char* key;
@@ -51,10 +50,11 @@ int list_empty(List list) {
  * apuntar al nodo de la lista donde
  * se encuentra key
 */
-int isInList(List* list, char *key) {
+int isInList(List* list, char *key,
+    uint32_t klen) {
   Node* node = *list;
   while(node != NULL) {
-    if(0 == strcmp(node->key, key)) {
+    if(0 == arrcmp(node->key, key, klen)) {
       *list = node;
       return 1;
     }
@@ -70,13 +70,13 @@ int list_add(List* list,
     pthread_mutex_t* listMutex) {
   assert(list != NULL);  
   char* newValue = allocate_mem(
-    sizeof(char)*(vlen+1), listMutex);
+    sizeof(char)*vlen, listMutex);
   List node = *list;
   if(!newValue) {
     return 0;
   }
-  strcpy(newValue, value);
-  if(isInList(&node, key)) {
+  arrcpy(newValue, value, vlen);
+  if(isInList(&node, key, klen)) {
     free(node->value);    
     node->value = newValue;
     node->lenVal = vlen;
@@ -102,7 +102,7 @@ int list_add(List* list,
   }
 
   Node* newNode = allocate_mem(sizeof(Node), listMutex);
-  char* newKey = allocate_mem(sizeof(char)*(klen+1), listMutex);
+  char* newKey = allocate_mem(sizeof(char)*klen, listMutex);
   if(!newNode || !newKey) {
     return 0;
   }
@@ -113,7 +113,7 @@ int list_add(List* list,
   }
   newNode->prev = NULL;
   
-  strcpy(newKey, key);
+  arrcpy(newKey, key, klen);
   newNode->key = newKey;
   newNode->value = newValue;
   newNode->lenVal = vlen;
@@ -124,12 +124,13 @@ int list_add(List* list,
 }
 
 int list_remove_key(List* list,
-    char* key) {
+    char* key, uint32_t keyLen) {
   Node* node = *list;
   if(node == NULL) {
     return 0;
   }
-  for(; strcmp(node->key, key) != 0 && node != NULL;
+  for(; arrcmp(node->key, key, keyLen) != 0
+    && node != NULL;
       node = node->next);
   
   if(!node) {
@@ -200,10 +201,11 @@ ValData* list_getValue(List* list,
 }
 
 List list_getByKey(List* list,
-    char* key) {
+    char* key, uint32_t keyLen) {
   Node* node = *list;  
   for(; node != NULL; node = node->next) {    
-    if(0 == strcmp(key, node->key)) {      
+    if(0 == arrcmp(key,
+        node->key, keyLen)) {      
       return node;
     }
   }

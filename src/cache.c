@@ -129,15 +129,16 @@ int cache_insert(Cache cache,
   return 1;
 }
 
-char* cache_get(Cache cache, char* key) {
+ValData* cache_get(Cache cache, char* key,
+    uint32_t keyLen) {
   stats_getsInc(cache->stats);
   unsigned idx = get_idx(cache, key,keyLen);
   pthread_mutex_t* mutex = 
     get_mutex_by_idx(cache, idx);  
   List* list = cache->listArr+idx;
   pthread_mutex_lock(mutex);
-  char* value = list_getValue(list, key, mutex);
-  if(!value) {
+  ValData* valData = list_getValue(list, key, mutex);
+  if(!valData) {
     pthread_mutex_unlock(mutex);
     return NULL;
   }
@@ -146,8 +147,9 @@ char* cache_get(Cache cache, char* key) {
   //el elemento por si fué desalojado por
   //allocate_mem en list_getValue
   int res = list_add(list,
-    key, strlen(key), value,
-    strlen(value), isBin, mutex);  
+    key, keyLen, valData->value,
+    valData->valSize, valData->isBin,
+    mutex);  
   assert(res != 0); //res no debería ser 0
   switch (res) {
   case 1:
@@ -156,7 +158,7 @@ char* cache_get(Cache cache, char* key) {
     if(0 == res) {
       list_remove_node(list, *list);
       pthread_mutex_unlock(mutex);
-      return value;
+      return valData;
     }
     stats_keysInc(cache->stats);
     break;
@@ -165,10 +167,11 @@ char* cache_get(Cache cache, char* key) {
     break;
   }
   pthread_mutex_unlock(mutex);
-  return value;
+  return valData;
 }
 
-int cache_delete(Cache cache, char* key) {
+int cache_delete(Cache cache, char* key,
+    uint32_t keyLen) {
   stats_delsInc(cache->stats);
   unsigned idx = get_idx(cache, key, keyLen);
   pthread_mutex_t* mutex = 
@@ -179,7 +182,8 @@ int cache_delete(Cache cache, char* key) {
     pthread_mutex_unlock(mutex);
     return 0;  
   }
-  List ptr = list_getByKey(list, key);
+  List ptr = list_getByKey(list, key,
+    keyLen);
   if(!ptr) {
     pthread_mutex_unlock(mutex);
     return 0;

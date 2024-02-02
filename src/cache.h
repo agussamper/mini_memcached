@@ -5,6 +5,7 @@
 
 #include "evict.h"
 #include "stats.h"
+#include <stdint.h>
 
 // Funcion hash
 typedef unsigned (*HashFunction)(const char* data,int len);
@@ -48,9 +49,11 @@ int cache_size(Cache cache);
  * @param value valor que se quiere insertar
  * a cache.
  * @param value_length longitud del valor.
+ * @param isBin Indica si la clave y el valor
+ * ingresados están en binario o no.
  * @return Si pude insertar retorna 1, en caso
  * contrario 0.
- */ //TODO: documentar isBin, etc
+ * */
 int cache_insert(Cache table, 
     char *key, unsigned key_length, 
     char *value, unsigned value_length,
@@ -65,8 +68,10 @@ int cache_insert(Cache table,
  * la clave.
  * @param key clave para la cuál se quiere
  * obtener su valor asociado. 
+ * @param keyLen longitud de la clave.
 */
-char* cache_get(Cache cache, char* key);
+ValData* cache_get(Cache cache, 
+  char* key, uint32_t keyLen);
 
 /**
  * Elimina el dato de la cache que coincida
@@ -78,7 +83,8 @@ char* cache_get(Cache cache, char* key);
  * Si lo elimina con éxito retorna 1
  * Si no encuentra key en la cache retorna 0.
  */
-int cache_delete(Cache cache, char* key);
+int cache_delete(Cache cache, char* key,
+  uint32_t keyLen);
 
 /**
  * Elimina a lo sumo los 10 elementos menos

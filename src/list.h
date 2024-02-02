@@ -77,11 +77,13 @@ void list_remove_node(List* list, List lNode);
  * modificar.
  * @param key clave que se quiere eliminar de
  * list.
+ * @param keyLen longitud de la clave.
  * @return
  * Devuelve 1 si encontró y borró el 
  * elemento y si no lo encontró devuelve 0.
 */
-int list_remove_key(List* list, char* key);
+int list_remove_key(List* list,
+  char* key, uint32_t keyLen);
 
 /**
  * Busca el valor asociado a la clave pasada
@@ -106,7 +108,8 @@ ValData* list_getValue(List* list, char* key,
  * que tiene a key. Si no lo encuentra
  * devuelve NULL.
 */
-List list_getByKey(List* list, char* key);
+List list_getByKey(List* list, char* key,
+  uint32_t keyLen);
 
 /**
  * Devuelve un puntero al nodo de la
