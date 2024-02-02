@@ -49,8 +49,8 @@ int cache_size(Cache cache);
  * @param value valor que se quiere insertar
  * a cache.
  * @param value_length longitud del valor.
- * @param isBin Indica si la clave y el valor
- * ingresados están en binario o no.
+ * @param isBin Si la clave y el valor están
+ * en binarios pasar 1, si no 0.
  * @return Si pude insertar retorna 1, en caso
  * contrario 0.
  * */

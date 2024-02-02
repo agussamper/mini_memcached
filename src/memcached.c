@@ -66,7 +66,9 @@ void text_handle(epollfd* evd, char *toks[3], int lens[3], int ntok){
 			free(response);
 			return;
 		} 
-		cache_insert(memcache,toks[1],lens[1],toks[2],lens[2]);
+		cache_insert(memcache,
+			toks[1], lens[1], 
+			toks[2], lens[2], 0);
 		write(fd,"OK\n",3);
 		return;
 	}
@@ -75,7 +77,8 @@ void text_handle(epollfd* evd, char *toks[3], int lens[3], int ntok){
 			write(fd,"EINVAL\n",7);
 			return;
 		}
-		char* val = cache_get(memcache,toks[1]);
+		char* val = cache_get(memcache,
+		 	toks[1], strlen(toks[1]));
 		if(val == NULL){
 			free(val);
 			write(fd,"ENOTFOUND\n",10);
@@ -92,7 +95,8 @@ void text_handle(epollfd* evd, char *toks[3], int lens[3], int ntok){
 			write(fd,"EINVAL\n",7);
 			return;
 		}
-		int res = cache_delete(memcache,toks[1]);
+		int res = cache_delete(memcache, 
+			toks[1], strlen(toks[1]));
 		if(res){
 			write(fd,"OK\n",3);		
 		}else{
@@ -115,16 +119,6 @@ void text_handle(epollfd* evd, char *toks[3], int lens[3], int ntok){
 	}
 }
 
-/**
- 
-PUT A B
-GET A
-STATS
-
-
-
-
-*/
 /* 0: todo ok, continua. -1 errores */
 int text_consume(epollfd* evd, char buf[2048])
 {
@@ -210,11 +204,11 @@ int bin_consume(epollfd* evd){
   int lenk;
 	switch (comm)
 	{
-	case 11:
+	case PUT:
 		buf = malloc(5);
 		rc = READ(fd,buf,4);
 		if(rc < 4){
-			char response = 111;
+			char response = EINVALID;
 			write(fd,&response,1);
 			return -1;
 		}
@@ -222,14 +216,14 @@ int bin_consume(epollfd* evd){
 		key = malloc(lenk+1);
 		rc = READ(fd,key,lenk);
 		if(rc != lenk){
-			char response = 111;
+			char response = EINVALID;
 			write(fd,&response,1);
 			printf("keylen error lenk: %d actual:%d\n",lenk,rc);
 			return -1;
 		}
 		rc = READ(fd,buf,4);
 		if(rc < 4){
-			char response = 111;
+			char response = EINVALID;
 			write(fd,&response,1);
 			return -1;
 		}
@@ -237,29 +231,31 @@ int bin_consume(epollfd* evd){
 		char* value = malloc(lenv+1);
 		rc = READ(fd,value,lenv);
 		if(rc != lenv){
-			char response = 111;
+			char response = EINVALID;
 			write(fd,&response,1);
-			printf("vallen error lenv: %d actual:%d\n",lenv,rc);
+			printf("vallen error lenv: %d actual:%d\n",
+				lenv, rc);
 			return -1;
 		}
-		if(cache_insert(memcache,key,lenk,value,lenv,1)){
-			char response = 101;
+		if(cache_insert(memcache, key,
+				lenk, value, lenv, 1)){
+			char response = OK;
 			write(fd,&response,1);
 		}
 		else{
-			char response = 111;
+			char response = EINVALID;;
 			write(fd,&response,1);
 			printf("insert error\n");
 			return -1;	
 		}
 		break;
-	case 12:
+	case DEL:
 		break;
-	case 13:    
+	case GET:    
     buf = malloc(5);
 		rc = READ(fd,buf,4);
 		if(rc < 4){
-			char response = 111;
+			char response = EINVALID;
 			write(fd,&response,1);
 			return -1;
 		}
@@ -267,29 +263,31 @@ int bin_consume(epollfd* evd){
 		key = malloc(lenk+1);
 		rc = READ(fd,key,lenk);
 		if(rc != lenk){
-			char response = 111;
+			char response = EINVALID;
 			write(fd,&response,1);
-			printf("keylen error lenk: %d actual:%d\n",lenk,rc);
+			printf("keylen error lenk: %d actual:%d\n",
+				lenk,rc);
 			return -1;
 		}
-    ValData* resp = cache_get(memcache,key);
+    ValData* resp = cache_get(memcache, 
+			key, lenk);
     if(NULL == resp){
-      char response = 112;
+      char response = ENOTFOUND;
       write(fd,&response,1);
       return -1;
     }
-	uint32_t bigLen = resp->valSize;		
+		uint32_t bigLen = resp->valSize;		
     long len = bigLen + 5;
     char* response = malloc(len);
-    response[0] = 101;
-	for(int i = 4; i > 0; i--) {
-		response[i] = bigLen & 0xFF;
-		bigLen = bigLen >> 8;
-	}
+    response[0] = OK;
+		for(int i = 4; i > 0; i--) {
+			response[i] = bigLen & 0xFF;
+			bigLen = bigLen >> 8;
+		}
     arrcpy(response+5,resp->value);
     write(fd,response,len);
 		break;
-	case 21:
+	case STATS:
 		break;
 	default:
 		break;
