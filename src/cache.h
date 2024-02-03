@@ -8,7 +8,8 @@
 #include <stdint.h>
 
 // Funcion hash
-typedef unsigned (*HashFunction)(const char* data,uint32_t len);
+typedef unsigned (*HashFunction)(
+  const char* data, uint32_t len);
 
 typedef struct _Cache *Cache;
 
@@ -60,9 +61,10 @@ int cache_insert(Cache table,
     int isBin);
 
 /**
- * Retorna un puntero a una copia del
- * valor que se asociada con la clave
- * dada o NULL si la clave buscada
+ * Retorna un puntero a una estructura
+ * valData, la cual tiene una copia del
+ * valor que se asocia con la clave
+ * dada. Retorna NULL si la clave buscada
  * no se encuentra en la cache.
  * @param cache dónde se quiere encontrar
  * la clave.
