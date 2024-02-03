@@ -12,9 +12,6 @@
 #include "memcached.h"
 #include "common.h"
 
-
-
-
 int mk_lsock(in_port_t puerto)
 {
 	struct sockaddr_in sa;
@@ -50,6 +47,7 @@ int mk_lsock(in_port_t puerto)
 
 int main()
 {
+	//TODO: descomentar lo de abajo
   //uid_t uid = getuid();
   //if(uid){
   //    quit("SE REQUIEREN PERMISOS DE SUPERUSUARIO");

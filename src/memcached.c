@@ -346,7 +346,8 @@ int bin_consume(epollfd* evd){
 }
 
 void* wait_for_req(void* argv){
-	ConcurrentQueue* conqueue = (ConcurrentQueue*) argv;
+	ConcurrentQueue* conqueue = 
+		(ConcurrentQueue*) argv;
 	while(1){
 	epollfd* epfd = 
 		concurrent_queue_dequeue(
@@ -463,10 +464,14 @@ void server_start(){
 	printf("iniciando servidor\n");
 
 
-
-	//ACA SE VAN A GUARDAR LOS PEDIDOS, LOS THREADS TOMARAN DE A UNO Y ATENDERAN
-	// SIGUIENDO UNA LOGICA DE PRODUCTOR CONSUMIDOR CON ESTRUCTURA FIFO
-	ConcurrentQueue* conqueue = malloc(sizeof(ConcurrentQueue));
+	/**
+	 * ACA SE VAN A GUARDAR LOS PEDIDOS, LOS
+	 * THREADS TOMARAN DE A UNO Y ATENDERAN
+	 * SIGUIENDO UNA LOGICA DE PRODUCTOR 
+	 * CONSUMIDOR CON ESTRUCTURA FIFO
+	*/
+	ConcurrentQueue* conqueue = 
+		malloc(sizeof(ConcurrentQueue));
 
 	concurrent_queue_init(conqueue,30);
 	printf("conqueue inicializada\n");
