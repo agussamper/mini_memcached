@@ -226,7 +226,7 @@ int cache_evict(Cache cache, pthread_mutex_t* listMutex) {
   return res;
 }
 
-char* cache_getStats(Cache cache) {
+uint64_t* cache_getStats(Cache cache) {
   return stats_getStats(cache->stats, NULL);
 }
 

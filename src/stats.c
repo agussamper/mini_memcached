@@ -61,9 +61,10 @@ void stats_keysDec(Stats stats) {
   pthread_mutex_unlock(&stats->mutex);
 }
 
-char* stats_getStats(Stats stats, pthread_mutex_t* listMutex) {
+uint64_t* stats_getStats(Stats stats, pthread_mutex_t* listMutex) {
   pthread_mutex_lock(&stats->mutex);
-  char* statsinf = allocate_mem(sizeof(char)*200, listMutex);
+  
+  /*char* statsinf = allocate_mem(sizeof(char)*200, listMutex);
   if(!statsinf) {
     return statsinf;
   }
@@ -71,6 +72,15 @@ char* stats_getStats(Stats stats, pthread_mutex_t* listMutex) {
   sprintf(statsinf, s,
     stats->puts, stats->dels, stats->gets,
     stats->keys);
+    */
+  uint64_t* statsinf = allocate_mem(sizeof(uint64_t)*4, listMutex);
+  if(!statsinf) {
+    return statsinf;
+  }   
+  statsinf[0] = stats->puts;
+  statsinf[1] = stats->dels;
+  statsinf[2] = stats->gets;
+  statsinf[3] = stats->keys;
   pthread_mutex_unlock(&stats->mutex);
   return statsinf;
 }

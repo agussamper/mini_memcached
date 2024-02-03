@@ -193,7 +193,7 @@ ValData* list_getValue(List* list,
         arrcpy(valCpy, val, lenVal);
         toReturn->isBin = isBin;
         toReturn->valSize = lenVal;
-        toReturn->valSize = valCpy;
+        toReturn->value = valCpy;
       return toReturn;
     }
   }

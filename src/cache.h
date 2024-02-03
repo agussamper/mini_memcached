@@ -8,7 +8,7 @@
 #include <stdint.h>
 
 // Funcion hash
-typedef unsigned (*HashFunction)(const char* data,int len);
+typedef unsigned (*HashFunction)(const char* data,uint32_t len);
 
 typedef struct _Cache *Cache;
 
@@ -101,7 +101,7 @@ int cache_evict(Cache cache,
  * Devuelve un string con la estadisticas de la
  * cache.
 */
-char* cache_getStats(Cache cache);
+uint64_t* cache_getStats(Cache cache);
 
 /**
  * Retorna 1 si la cache está vacía y 0 si no
