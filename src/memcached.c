@@ -38,15 +38,13 @@ void epfd_dstr(epollfd fd){
 	return;
 }
 
-
-
 /* Macro interna */
 #define READ(fd, buf, n) ({						\
-	int rc = read(fd, buf, n);					\
-	if (rc < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))	\
-		return 0;						\
-	if (rc <= 0)							\
-		return -1;						\
+	int rc = read(fd, buf, n);				\
+	if (rc < 0)	\
+		return -2;						\
+	if (rc == 0)						\
+		return -1;	\
 	rc; })
 
 //TODO: solucionar que servidor se cierra cuando el cliente cierra
@@ -217,7 +215,7 @@ int bin_consume(epollfd* evd){
 		if(rc < 4){
 			char response = EINVALID;
 			write(fd,&response,1);
-			return -1;
+			return 0;
 		}
 	  lenk = ntohl(*(int*)buf);
 		key = malloc(lenk+1);
@@ -227,13 +225,13 @@ int bin_consume(epollfd* evd){
 			write(fd,&response,1);
 			printf("keylen error lenk: %d actual:%d\n",
 				lenk, rc);
-			return -1;
+			return 0;
 		}
 		rc = READ(fd,buf,4);
 		if(rc < 4){
 			char response = EINVALID;
 			write(fd,&response,1);
-			return -1;
+			return 0;
 		}
 		int lenv = ntohl(*(int*)buf);
 		char* value = malloc(lenv+1);
@@ -243,7 +241,7 @@ int bin_consume(epollfd* evd){
 			write(fd,&response,1);
 			printf("vallen error lenv: %d actual:%d\n",
 				lenv, rc);
-			return -1;
+			return 0;
 		}
 		if(cache_insert(memcache, key,
 				lenk, value, lenv, 1)){
@@ -254,7 +252,7 @@ int bin_consume(epollfd* evd){
 			char response = EINVALID;
 			write(fd,&response,1);
 			printf("insert error\n");
-			return -1;	
+			return 0;	
 		}
 		break;
 	case DEL:
@@ -263,7 +261,7 @@ int bin_consume(epollfd* evd){
 		if(rc < 4){
 			char response = EINVALID;
 			write(fd,&response,1);
-			return -1;
+			return 0;
 		}
 		lenk = ntohl(*(int*)buf);
 		key = malloc(lenk+1);
@@ -273,7 +271,7 @@ int bin_consume(epollfd* evd){
 			write(fd,&response,1);
 			printf("keylen error lenk: %d actual:%d\n",
 				lenk,rc);
-			return -1;
+			return 0;
 		}
 		if(cache_delete(memcache,key,lenk)){
 			char response = OK;
@@ -290,7 +288,7 @@ int bin_consume(epollfd* evd){
 		if(rc < 4){
 			char response = EINVALID;
 			write(fd,&response,1);
-			return -1;
+			return 0;
 		}
 		lenk = ntohl(*(int*)buf);
 		key = malloc(lenk+1);
@@ -300,14 +298,14 @@ int bin_consume(epollfd* evd){
 			write(fd,&response,1);
 			printf("keylen error lenk: %d actual:%d\n",
 				lenk,rc);
-			return -1;
+			return 0;
 		}
     ValData* resp = cache_get(memcache, 
 			key, lenk);
     if(NULL == resp){
       char response = ENOTFOUND;
       write(fd,&response,1);
-      return -1;
+      return 0;
     }
 		uint32_t bigLen = resp->valSize;		
     long len = bigLen + 5;
@@ -338,7 +336,7 @@ int bin_consume(epollfd* evd){
 	default:
 		char c = EINVALID;
 		write(fd,&c,1);
-		return -1;
+		return 0;
 		break;
 	}
   return 0;
@@ -367,7 +365,11 @@ void* wait_for_req(void* argv){
 		int n = bin_consume(epfd);
 
 		printf("bin:%d\n",n);
-		if(n==-1)close(epfd->fd);
+		if(n==-1) {
+			close(epfd->fd);
+			epoll_ctl(epfd->fd, EPOLL_CTL_DEL,
+				binsock, NULL);
+		}
 
 	}
 	free(epfd);
@@ -439,7 +441,7 @@ void* bin_epoll(void* argv){
 			exit(EXIT_FAILURE);
 		}
 		for(int i = 0; i<bin_num_events; i++){
-			if(binevents[i].data.fd == binsock){
+			if(binevents[i].data.fd == binsock) {
 				bcsock = accept(binsock, NULL, NULL);
 				if (bcsock < 0) quit("accept");
 				printf("cliente aceptado\n");
@@ -447,8 +449,7 @@ void* bin_epoll(void* argv){
 				binevent.data.fd = bcsock;
 				epoll_ctl(epoll_fd,EPOLL_CTL_ADD,
 					bcsock,&binevent);
-			}
-			else{
+			} else {
 				epollfd* fd = malloc(sizeof(epollfd));
 				fd->type = 0;
 				fd->fd = binevents[i].data.fd;

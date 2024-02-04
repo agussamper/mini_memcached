@@ -112,6 +112,8 @@ response(Sock, {Ins, _Id, Packet}) ->
 requestListener(Sock) ->
     receive
         {Ins, Id, Packet} ->
+            io:format("Ins=~p, Id=~p Packet=~p~n",
+                [Ins,Id,Packet]),
             Id!response(Sock, {Ins, Id, Packet}),
             requestListener(Sock);
         close ->
