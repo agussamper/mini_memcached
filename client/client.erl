@@ -42,7 +42,6 @@ lenToInt([], -1) ->
 % y aplica la función lenToInt
 getLen(Sock) ->
     {ok, BinLen} = gen_tcp:recv(Sock,4),
-    io:format("BinLenList=~p~n", [binary_to_list(BinLen)]),
     trunc(lenToInt(
         binary_to_list(
             BinLen),
@@ -74,9 +73,7 @@ response(Sock, {Ins, _Id, Packet}) ->
             case Code of
                 <<?OK>> ->
                     Len = getLen(Sock),
-                    io:format("~p~n",[Len]),
                     {ok, BinVal} = gen_tcp:recv(Sock, Len),
-                    io:format("ya lei~n"),
                     Val = binary_to_term(BinVal),
                     {ok,Val};
                 <<?ENOTFOUND>> ->
@@ -112,8 +109,6 @@ response(Sock, {Ins, _Id, Packet}) ->
 requestListener(Sock) ->
     receive
         {Ins, Id, Packet} ->
-            io:format("Ins=~p, Id=~p Packet=~p~n",
-                [Ins,Id,Packet]),
             Id!response(Sock, {Ins, Id, Packet}),
             requestListener(Sock);
         close ->
@@ -141,7 +136,7 @@ sendPacket(Pid, Ins, Packet) ->
             Pid!{Ins,self(),Packet},
             recv_resp();
         false ->
-            io:format("Proces ~p is not alive~n",
+            io:format("Process ~p is not alive~n",
                 [Pid])
     end.
 
@@ -159,9 +154,6 @@ put(Pid, K, V) ->
     ValBin = term_to_binary(V),
     LengthK = byte_size(KeyBin),
     LengthV = byte_size(ValBin),
-    io:format("LengthK=~p~nKeyBin=~p~nLengthV=~p~nValBin=~p~n",
-        [LengthK, KeyBin, 
-            LengthV, ValBin]),
     Packet = <<Code:8/unsigned-integer,
              LengthK:32/big-unsigned-integer,
              KeyBin/binary,
