@@ -132,12 +132,13 @@ int cache_insert(Cache cache,
 ValData* cache_get(Cache cache, char* key,
     uint32_t keyLen) {
   stats_getsInc(cache->stats);
-  unsigned idx = get_idx(cache, key,keyLen);
+  unsigned idx = get_idx(cache, key, keyLen);
   pthread_mutex_t* mutex = 
     get_mutex_by_idx(cache, idx);  
   List* list = cache->listArr+idx;
   pthread_mutex_lock(mutex);
-  ValData* valData = list_getValue(list, key, mutex);
+  ValData* valData = 
+    list_getValue(list, key, keyLen, mutex);
   if(!valData) {
     pthread_mutex_unlock(mutex);
     return NULL;

@@ -91,6 +91,7 @@ int list_remove_key(List* list,
  * @param list puntero a la lista dónde se
  * quiere buscar la clave.
  * @param key clave que se quiere encontrar.
+ * @param lenK longitud de key.
  * @param listMutex se debe pasar el 
  * mutex de la cache que esté tomado
  * (un elemento de mutex_arr) al llamar
@@ -100,7 +101,8 @@ int list_remove_key(List* list,
  * del mismo, en una estructura de tipo
  * ValData, si no lo encuentra devuelve NULL.
 */
-ValData* list_getValue(List* list, char* key,
+ValData* list_getValue(List* list,
+  char* key, uint32_t lenK,
   pthread_mutex_t* listMutex);
 
 /**

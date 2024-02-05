@@ -54,7 +54,8 @@ int isInList(List* list, char *key,
     uint32_t klen) {
   Node* node = *list;
   while(node != NULL) {
-    if(0 == arrcmp(node->key, key, klen)) {
+    if(0 == arrcmp(node->key,
+        node->lenKey, key, klen)) {
       *list = node;
       return 1;
     }
@@ -129,7 +130,8 @@ int list_remove_key(List* list,
   if(node == NULL) {
     return 0;
   }
-  for(; arrcmp(node->key, key, keyLen) != 0
+  for(; arrcmp(node->key, 
+      node->lenKey, key, keyLen) != 0
     && node != NULL;
       node = node->next);
   
@@ -174,11 +176,13 @@ void list_remove_node(List* list, List lNode) {
 }
 
 ValData* list_getValue(List* list,
-    char* key, 
+    char* key,
+    uint32_t lenK,
     pthread_mutex_t* listMutex) {
   Node* node = *list;
   for(; node != NULL; node = node->next) {
-    if(0 == strcmp(key, node->key)) {
+    if(0 == arrcmp(key, lenK,
+        node->key, node->lenKey)) {
       uint32_t lenVal = node->lenVal;
       char val[lenVal];
       arrcpy(val, node->value, lenVal);
@@ -204,8 +208,8 @@ List list_getByKey(List* list,
     char* key, uint32_t keyLen) {
   Node* node = *list;  
   for(; node != NULL; node = node->next) {    
-    if(0 == arrcmp(key,
-        node->key, keyLen)) {      
+    if(0 == arrcmp(key, keyLen,
+        node->key, node->lenKey)) {      
       return node;
     }
   }
