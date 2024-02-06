@@ -103,16 +103,10 @@ aux_response(Sock, Ins, Code) ->
         stats ->            
             case Code of                
                 <<?OK>> ->
-                    Puts = integer_to_list(
-                        getNum(Sock, getLen(Sock))),
-                    Dels = integer_to_list(
-                        getNum(Sock, getLen(Sock))),
-                    Gets = integer_to_list(
-                        getNum(Sock, getLen(Sock))),
-                    Keys = integer_to_list(
-                        getNum(Sock, getLen(Sock))),
-                    "OK PUTS=" ++ Puts ++ " DELS=" ++ Dels ++ 
-                        " GETS=" ++ Gets ++ " KEYS=" ++ Keys;
+                    Len = getLen(Sock),
+                    {ok, BinStats} = gen_tcp:recv(Sock, Len),
+                    Stats = binary_to_list(BinStats),
+                    {ok, Stats};
                 _ -> {error, Code}
             end
     end.
