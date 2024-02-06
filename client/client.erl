@@ -14,15 +14,21 @@
 -define(EBIG,114).
 -define(EUNK, 115).
 
+% tcp_connect: inet:socket_address() | inet:hostname() -> socket()
+% Se conecta a un servior en el puerto TCP 889
+tcp_connect(Address) ->
+    gen_tcp:connect(Address, 8889,
+        [binary, {packet,0}, {active, false},
+            {exit_on_close, false}]).
+
 % start: inet:socket_address() | inet:hostname() -> socket()
 % Se conecta a un servior en el puerto TCP 889,
 % en el host con dirección IP Address, Devuelve
 % el proceso asociado a la conexión.
 start(Address) ->
-    case gen_tcp:connect(Address, 8889,
-        [binary, {packet,0}, {active, false}])
-            of
-        {ok, Sock} -> spawn(fun()->requestListener(Sock) end);
+    case tcp_connect(Address) of
+        {ok, Sock} -> 
+            spawn(fun()->requestListener(Sock, Address) end);
         {error, Reason} -> {error, Reason}
     end.
 
@@ -57,20 +63,28 @@ getNum(Sock, Bytes)  ->
             gen_tcp:recv(Sock,Bytes)),
             Bytes-1)).
 
-% response: sock(), atom, pid(), binary() -> atom | {atom, term}
-% Envia Packet al servidor a través de Sock,
-%  recibe la respuesta del mismo y la devuelve
-response(Sock, {Ins, _Id, Packet}) ->
-    gen_tcp:send(Sock, Packet),
-    {ok,Code} = gen_tcp:recv(Sock,1),
+% sendAndRecv: sock(), binary() -> 
+%   {ok, binary()} | close
+% Manda al servidor Packet y lee de la
+% respuesta del mismo el primer byte.
+% Si la conexión está cerrada devuelve
+% close
+sendAndRecv(Sock, Packet) ->    
+    case gen_tcp:send(Sock, Packet) of
+        ok -> gen_tcp:recv(Sock,1);
+        _ -> 
+            close
+    end.
+    
+aux_response(Sock, Ins, Code) ->
     case Ins of
-        put -> 
+        put ->             
             case Code of
                 <<?OK>> -> ok;
                 _ -> {error, Code}
             end;            
         get ->
-            case Code of
+            case Code of                
                 <<?OK>> ->
                     Len = getLen(Sock),
                     {ok, BinVal} = gen_tcp:recv(Sock, Len),
@@ -81,22 +95,36 @@ response(Sock, {Ins, _Id, Packet}) ->
                 _ -> {error, Code}
             end;
         del ->
-            case Code of
+            case Code of                
                 <<?OK>> -> ok;
                 <<?ENOTFOUND>> -> enotfound;
                 _ -> {error, Code}
             end;
-        stats ->
-            case Code of
+        stats ->            
+            case Code of                
                 <<?OK>> ->
-                    Puts = integer_to_list(getNum(Sock, getLen(Sock))),
-                    Dels = integer_to_list(getNum(Sock, getLen(Sock))),
-                    Gets = integer_to_list(getNum(Sock, getLen(Sock))),
-                    Keys = integer_to_list(getNum(Sock, getLen(Sock))),
+                    Puts = integer_to_list(
+                        getNum(Sock, getLen(Sock))),
+                    Dels = integer_to_list(
+                        getNum(Sock, getLen(Sock))),
+                    Gets = integer_to_list(
+                        getNum(Sock, getLen(Sock))),
+                    Keys = integer_to_list(
+                        getNum(Sock, getLen(Sock))),
                     "OK PUTS=" ++ Puts ++ " DELS=" ++ Dels ++ 
                         " GETS=" ++ Gets ++ " KEYS=" ++ Keys;
                 _ -> {error, Code}
-            end            
+            end
+    end.
+
+% response: sock(), {atom, pid(), binary()} -> atom | {atom, term}
+% Envia Packet al servidor a través de Sock,
+%  recibe la respuesta del mismo y la devuelve
+response(Sock, {Ins, _Id, Packet}) ->    
+    case sendAndRecv(Sock, Packet) of
+        {ok, Code} ->
+            aux_response(Sock, Ins, Code);
+        close -> close
     end.
 
 % requestListener: Sock -> ok
@@ -106,11 +134,24 @@ response(Sock, {Ins, _Id, Packet}) ->
 % inicial. En el caso que la instrucción
 % sea close sale de la función devolviendo
 % ok 
-requestListener(Sock) ->
+requestListener(Sock, Address) ->
     receive
         {Ins, Id, Packet} ->
-            Id!response(Sock, {Ins, Id, Packet}),
-            requestListener(Sock);
+            case response(Sock, {Ins, Id, Packet}) of
+                close ->
+                    gen_tcp:close(Sock),
+                    case tcp_connect(Address) of
+                        {ok, NewSock} -> 
+                            Id!response(NewSock,
+                                 {Ins, Id, Packet}),
+                            requestListener(NewSock, Address);
+                        {error, Reason} ->
+                            Id!{error, Reason}
+                    end;
+                Else -> 
+                    Id!Else,
+                    requestListener(Sock, Address)
+            end;
         close ->
             gen_tcp:close(Sock)
     end.
