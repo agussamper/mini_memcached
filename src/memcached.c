@@ -9,6 +9,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <sys/ioctl.h>
 #include "memcached.h"
 #include "cache.h"
 #include "common.h"
@@ -47,19 +48,16 @@ void epfd_dstr(epollfd fd){
 		return -1;	\
 	rc; })
 
-//TODO: solucionar que servidor se cierra cuando el cliente cierra
-// la conexion
 void text_handle(epollfd* evd,
  		char *toks[3], int lens[3],
 		int ntok){
 	int fd = evd->fd;
 	if(!strcmp(toks[0],"PUT")){
 		if(ntok !=3){
-			char * response = malloc(sizeof(char) * 20);
+			char response[20];
 			int len = sprintf(response,
 				"EINVAL NTOK %d\n",ntok);
 			write(fd,response,len);
-			free(response);
 			return;
 		} 
 		cache_insert(memcache,
@@ -110,13 +108,12 @@ void text_handle(epollfd* evd,
 			return;
 		}
 		uint64_t* stats = cache_getStats(memcache);
-		char* response = malloc(200);
+		char response[1000];
 		char* s = "OK PUTS=%"PRIu64" DELS=%"PRIu64" GETS=%"PRIu64" KEYS=%"PRIu64"\n\0";
 		sprintf(response, s,
-			stats[1], stats[2], stats[3],
-			stats[4]);	
+			stats[0], stats[1], stats[2],
+			stats[3]);	
 		write(fd,response,strlen(response));
-		free(response);	
 		return;
 	}else{
 			write(fd,"EINVAL\n",7);
@@ -204,13 +201,12 @@ int bin_consume(epollfd* evd){
 	int fd = evd->fd;
 	char comm;
 	int rc = READ(fd,&comm,1);
-  char* buf;
+  char buf[4];
   char* key;
   int lenk;
 	switch (comm)
 	{
 	case PUT:
-		buf = malloc(5);
 		rc = READ(fd,buf,4);
 		if(rc < 4){
 			char response = EINVALID;
@@ -218,6 +214,7 @@ int bin_consume(epollfd* evd){
 			return 0;
 		}
 	  lenk = ntohl(*(int*)buf);
+		//TODO: usar allocate_mem???
 		key = malloc(lenk+1);
 		rc = READ(fd,key,lenk);
 		if(rc != lenk){
@@ -256,7 +253,6 @@ int bin_consume(epollfd* evd){
 		}
 		break;
 	case DEL:
-		buf = malloc(5);
 		rc = READ(fd,buf,4);
 		if(rc < 4){
 			char response = EINVALID;
@@ -283,7 +279,6 @@ int bin_consume(epollfd* evd){
 		}
 		break;
 	case GET:    
-    buf = malloc(5);
 		rc = READ(fd,buf,4);
 		if(rc < 4){
 			char response = EINVALID;
@@ -355,22 +350,24 @@ void* wait_for_req(void* argv){
 	printf("hola que tal que nececita\n");
 	if(epfd->type){
 		printf("texto detectado\n");
-		char* buf = malloc(sizeof(char) * 2048);
+		char buf[2048];
 		int n = text_consume(epfd,buf);
 		printf("text:%d\n",n);
-		if(n==-1) close(epfd->fd);
-		free(buf);
+		if(n < 0) {			
+			close(epfd->fd);
+			epoll_ctl(epfd->fd, EPOLL_CTL_DEL,
+				binsock, NULL);
+		}
 	}else{
 		printf("binario detectado\n");
 		int n = bin_consume(epfd);
 
 		printf("bin:%d\n",n);
-		if(n==-1) {
+		if(n < 0) {
 			close(epfd->fd);
 			epoll_ctl(epfd->fd, EPOLL_CTL_DEL,
 				binsock, NULL);
 		}
-
 	}
 	free(epfd);
 	}
