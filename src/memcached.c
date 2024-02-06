@@ -15,6 +15,7 @@
 #include "common.h"
 #include "parser.h"
 #include "arr_func.h"
+#include "malloc_interface.h"
 #include "../concurrent_queue/concurrent_queue.h"
 #define MAX_THREADS 6
 #define MAX_EVENTS 10
@@ -214,20 +215,21 @@ int bin_consume(epollfd* evd){
 			return 0;
 		}
 	  lenk = ntohl(*(int*)buf);
-		//TODO: usar allocate_mem???
-		key = malloc(lenk+1);
+		key = allocate_mem(lenk+1, NULL);
 		rc = READ(fd,key,lenk);
 		if(rc != lenk){
 			char response = EINVALID;
 			write(fd,&response,1);
 			printf("keylen error lenk: %d actual:%d\n",
 				lenk, rc);
+			free(key);
 			return 0;
 		}
 		rc = READ(fd,buf,4);
 		if(rc < 4){
 			char response = EINVALID;
 			write(fd,&response,1);
+			free(key);
 			return 0;
 		}
 		int lenv = ntohl(*(int*)buf);
@@ -238,6 +240,8 @@ int bin_consume(epollfd* evd){
 			write(fd,&response,1);
 			printf("vallen error lenv: %d actual:%d\n",
 				lenv, rc);
+			free(key);
+			free(value);
 			return 0;
 		}
 		if(cache_insert(memcache, key,
@@ -248,9 +252,10 @@ int bin_consume(epollfd* evd){
 		else{
 			char response = EINVALID;
 			write(fd,&response,1);
-			printf("insert error\n");
-			return 0;	
+			printf("insert error\n");	
 		}
+		free(key);
+		free(value);
 		break;
 	case DEL:
 		rc = READ(fd,buf,4);
@@ -263,6 +268,7 @@ int bin_consume(epollfd* evd){
 		key = malloc(lenk+1);
 		rc = READ(fd,key,lenk);
 		if(rc != lenk){
+			free(key);
 			char response = EINVALID;
 			write(fd,&response,1);
 			printf("keylen error lenk: %d actual:%d\n",
@@ -277,6 +283,7 @@ int bin_consume(epollfd* evd){
 			char response = ENOTFOUND;
 			write(fd,&response,1);
 		}
+		free(key);
 		break;
 	case GET:    
 		rc = READ(fd,buf,4);
@@ -293,6 +300,7 @@ int bin_consume(epollfd* evd){
 			write(fd,&response,1);
 			printf("keylen error lenk: %d actual:%d\n",
 				lenk,rc);
+			free(key);
 			return 0;
 		}
     ValData* resp = cache_get(memcache, 
@@ -300,6 +308,7 @@ int bin_consume(epollfd* evd){
     if(NULL == resp){
       char response = ENOTFOUND;
       write(fd,&response,1);
+			free(key);
       return 0;
     }
 		uint32_t bigLen = resp->valSize;		
@@ -313,6 +322,7 @@ int bin_consume(epollfd* evd){
     arrcpy(response+5,
 			resp->value, resp->valSize);
     write(fd,response,len);
+		free(response);
 		free(resp->value);
 		free(resp);
 		break;
