@@ -137,17 +137,17 @@ void* bin_epoll(void* argv){
 				epoll_ctl(epoll_fd,EPOLL_CTL_ADD,
 					bcsock,&binevent);
 			} else {
-				Bin_data* bd = (Bin_data*)binevents[i].data.ptr;
+				Bin_data* bd = (Bin_data*)binevents[i].data.ptr;				
 				pthread_mutex_lock(&bd->buf_mutex);
 				if(!bd->reading) {
 					pthread_mutex_unlock(&bd->buf_mutex);
-					epollfd* epollfd = allocate_mem
-						(sizeof(epollfd), NULL); //TODO: cuando se libera??
-					epollfd->bd = binevents[i].data.ptr;					
-					epollfd->fd = binevents[i].data.fd;
+					epollfd* efd = allocate_mem(
+						sizeof(epollfd), NULL); //TODO: cuando se libera??
+					efd->bd = binevents[i].data.ptr;					
+					efd->fd = binevents[i].data.fd;
 					concurrent_queue_enqueue(conqueue,
-						epollfd, (Copy) epfd_copy);
-				} else {
+						efd, (Copy) epfd_copy);
+				} else {					
 					pthread_mutex_unlock(&bd->buf_mutex);
 				}
 			}

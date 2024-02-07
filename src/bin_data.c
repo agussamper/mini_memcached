@@ -3,7 +3,7 @@
 
 Bin_data* bin_data_init() {
   Bin_data* bd = 
-    allocate_mem(sizeof(bd), NULL);
+    allocate_mem(sizeof(Bin_data), NULL);
   bd->reading = 0;
   pthread_mutex_init(
     &(bd->buf_mutex), NULL);
