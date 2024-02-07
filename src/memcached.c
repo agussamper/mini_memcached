@@ -16,6 +16,8 @@
 #include "../concurrent_queue/concurrent_queue.h"
 #include "text_manage.h"
 #include "bin_manage.h"
+#include "bin_data.h"
+#include "epollfd.h"
 #define MAX_THREADS 6
 #define MAX_EVENTS 10
 
@@ -23,21 +25,6 @@ Cache memcache;
 
 int textsock;
 int binsock;
-
-typedef struct _epollfd{
-	int type;
-	// 0 : bin
-	// 1 : text
-	int fd;
-} epollfd;
-
-epollfd epfd_copy(epollfd fd){
-	return fd;
-}
-
-void epfd_dstr(epollfd fd){
-	return;
-}
 
 void* wait_for_req(void* argv){
 	ConcurrentQueue* conqueue = 
@@ -49,11 +36,11 @@ void* wait_for_req(void* argv){
 			(Destroy)epfd_dstr,
 			(Copy) epfd_copy);
 	printf("hola que tal que necesita\n");
-	if(epfd->type){
+	if(!epfd->bd){
 		printf("texto detectado\n");
 		char buf[2048];
 		int n = text_consume(
-			memcache, epfd->fd, buf);
+			memcache, epfd->fd, buf); //TODO: no pasar buf
 		printf("text:%d\n",n);
 		if(n < 0) {			
 			close(epfd->fd);
@@ -62,7 +49,7 @@ void* wait_for_req(void* argv){
 		}
 	} else {
 		printf("binario detectado\n");
-		int n = bin_consume(memcache, epfd->fd);
+		int n = bin_consume(memcache, epfd);
 
 		printf("bin:%d\n",n);
 		if(n < 0) {
@@ -107,7 +94,7 @@ void* text_epoll(void* argv){
 			}
 			else{
 				epollfd* epollfd = malloc(sizeof(epollfd));
-				epollfd->type = 1;
+				epollfd->bd = NULL;
 				epollfd->fd = textevents[i].data.fd;
 				concurrent_queue_enqueue(conqueue,
 					epollfd, (Copy) epfd_copy);
@@ -144,15 +131,25 @@ void* bin_epoll(void* argv){
 				printf("cliente aceptado\n");
 				binevent.events = EPOLLIN | EPOLLET;
 				binevent.data.fd = bcsock;
-				//binevent.data.ptr = //TODO: cargar bin_data
+				Bin_data* bd = bin_data_init();
+				bin_data_setReading(bd,0);
+				binevent.data.ptr = bd;
 				epoll_ctl(epoll_fd,EPOLL_CTL_ADD,
 					bcsock,&binevent);
 			} else {
-				epollfd* epollfd = malloc(sizeof(epollfd)); //TODO: cuando se libera??
-				epollfd->type = 0;
-				epollfd->fd = binevents[i].data.fd;
-				concurrent_queue_enqueue(conqueue,
-					epollfd, (Copy) epfd_copy);
+				Bin_data* bd = (Bin_data*)binevents[i].data.ptr;
+				pthread_mutex_lock(&bd->buf_mutex);
+				if(!bd->reading) {
+					pthread_mutex_unlock(&bd->buf_mutex);
+					epollfd* epollfd = allocate_mem
+						(sizeof(epollfd), NULL); //TODO: cuando se libera??
+					epollfd->bd = binevents[i].data.ptr;					
+					epollfd->fd = binevents[i].data.fd;
+					concurrent_queue_enqueue(conqueue,
+						epollfd, (Copy) epfd_copy);
+				} else {
+					pthread_mutex_unlock(&bd->buf_mutex);
+				}
 			}
 		}
   }

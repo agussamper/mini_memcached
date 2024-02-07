@@ -29,7 +29,8 @@ int readn(int fd, void *buf, int len)
 		return -1;	\
 	rc; })
 
-int bin_consume(Cache cache ,int fd) {
+int bin_consume(Cache cache , epollfd* efd) {
+	int fd = efd->fd;
 	puts("ESTOY EN BIN CONSUME");
 	char comm;
 	int rc = READ(fd,&comm,1);
@@ -40,7 +41,7 @@ int bin_consume(Cache cache ,int fd) {
 	{
 	case PUT:
 		rc = READ(fd,buf,4);
-		if(rc < 4){
+		if(rc < 4) {
 			char response = EINVALID;
 			write(fd,&response,1);
 			return 0;

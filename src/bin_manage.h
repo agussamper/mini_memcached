@@ -4,7 +4,8 @@
 #include <stdio.h>
 #include "common.h"
 #include "cache.h"
+#include "epollfd.h"
 
-int bin_consume(Cache cache ,int fd);
+int bin_consume(Cache cache , epollfd* efd);
 
 #endif

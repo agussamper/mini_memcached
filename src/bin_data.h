@@ -4,14 +4,13 @@
 #include <pthread.h>
 
 typedef struct Bin_data {
-  char* buf;
-  int offset; 
-  int writing;
+  int reading;
   pthread_mutex_t buf_mutex;  
 } Bin_data;
 
-Bin_data bin_data_init();
+Bin_data* bin_data_init();
 
-Bin_data bin_data_writeBuf();
+Bin_data bin_data_setReading(
+  Bin_data* bd, int set);
 
 #endif
