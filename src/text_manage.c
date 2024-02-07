@@ -73,13 +73,9 @@ void text_handle(
 			write(fd,"EINVAL\n",7);
 			return;
 		}
-		uint64_t* stats = cache_getStats(cache);
-		char response[1000];
-		char* s = "OK PUTS=%"PRIu64" DELS=%"PRIu64" GETS=%"PRIu64" KEYS=%"PRIu64"\n\0";
-		sprintf(response, s,
-			stats[0], stats[1], stats[2],
-			stats[3]);	
-		write(fd,response,strlen(response));
+		char* stats = cache_getStats(cache);
+		write(fd,stats,strlen(stats));
+		free(stats);
 		return;
 	}else{
 			write(fd,"EINVAL\n",7);

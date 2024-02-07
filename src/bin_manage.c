@@ -159,16 +159,18 @@ int bin_consume(Cache cache , epollfd* efd) {
 		free(resp);
 		break;
 	case STATS:
-		uint64_t* stats = cache_getStats(cache);
-		char* stats_msj = malloc(33);
+		char* stats = cache_getStats(cache);
+		uint32_t len_stats = strlen(stats);
+		uint32_t len_msj = len_stats+5;
+		char* stats_msj = malloc(len_msj);
 		stats_msj[0] = OK;
-		for(int i = 0; i < 4; i++){
-			uint64_t bignum = stats[i];
-			for(int j = 8; j>0;j--){
-				stats_msj[(i*8)+j] = bignum & 0xFF;
-				bignum = bignum >>8;
-			}
+		for(int i = 4; i > 0; i--) {
+			stats_msj[i] = len_stats & 0xFF;
+			len_stats = len_stats >> 8;
 		}
+		strcpy(stats_msj+5,stats);
+		write(fd,stats_msj,len_msj);
+		free(stats);
 		break;
 	default:
 		char c = EINVALID;

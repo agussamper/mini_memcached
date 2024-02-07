@@ -103,7 +103,7 @@ int cache_evict(Cache cache,
  * Devuelve un string con la estadisticas de la
  * cache.
 */
-uint64_t* cache_getStats(Cache cache);
+char* cache_getStats(Cache cache);
 
 /**
  * Retorna 1 si la cache está vacía y 0 si no

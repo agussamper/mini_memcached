@@ -63,6 +63,6 @@ void stats_keysDec(Stats stats);
  * siguiente forma:
  * "OK PUTS=%"PRIu64" DELS=%"PRIu64" GETS=%"PRIu64"
 */
-uint64_t* stats_getStats(Stats stats, pthread_mutex_t* listMutex);
+char* stats_getStats(Stats stats, pthread_mutex_t* listMutex);
 
 #endif
