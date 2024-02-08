@@ -7,6 +7,7 @@
 #include <signal.h>
 #include <pthread.h>
 #include <errno.h>
+#include <string.h>
 #include <inttypes.h>
 #include "memcached.h"
 #include "cache.h"
@@ -30,35 +31,39 @@ void* wait_for_req(void* argv){
 	ConcurrentQueue* conqueue = 
 		(ConcurrentQueue*) argv;
 	while(1){
-	epollfd* epfd = 
-		concurrent_queue_dequeue(
-			conqueue,
-			(Destroy)epfd_dstr,
-			(Copy) epfd_copy);
-	printf("hola que tal que necesita\n");
-	if(!epfd->bd){
-		printf("texto detectado\n");
-		char buf[2048];
-		int n = text_consume(
-			memcache, epfd->fd, buf); //TODO: no pasar buf
-		printf("text:%d\n",n);
-		if(n < 0) {			
-			close(epfd->fd);
-			epoll_ctl(epfd->fd, EPOLL_CTL_DEL,
-				binsock, NULL);
+		epollfd* epfd = 
+			concurrent_queue_dequeue(
+				conqueue,
+				(Destroy)epfd_dstr,
+				(Copy) epfd_copy);
+		printf("hola que tal que necesita\n");
+		if(!epfd->bd){
+			printf("texto detectado\n");
+			char buf[2048];
+			int n = text_consume(
+				memcache, epfd->fd, buf); //TODO: no pasar buf
+			printf("text:%d\n",n);
+			if(n < 0) {			
+				close(epfd->fd);
+				epoll_ctl(epfd->fd, EPOLL_CTL_DEL,
+					binsock, NULL);
+			}
+		} else {
+			printf("binario detectado\n");
+			int bytesRead = 0;
+			char* buf = bin_data_read(epfd->bd, 
+				&bytesRead, epfd->bd->fd);
+			printf("BYTESREAD=%d\n", bytesRead);
+			if(bytesRead <= 0 || buf == NULL) {
+				close(epfd->bd->fd);
+				epoll_ctl(epfd->bd->fd, EPOLL_CTL_DEL,
+					binsock, NULL);
+			}
+			bin_consume(memcache, buf, epfd->bd->fd);
+			if(buf != NULL) {
+				free(buf);
+			}
 		}
-	} else {
-		printf("binario detectado\n");
-		int n = bin_consume(memcache, epfd);
-
-		printf("bin:%d\n",n);
-		if(n < 0) {
-			close(epfd->fd);
-			epoll_ctl(epfd->fd, EPOLL_CTL_DEL,
-				binsock, NULL);
-		}
-	}
-	free(epfd);
 	}
 }
 
@@ -111,7 +116,7 @@ void* bin_epoll(void* argv){
 	int bcsock;
   struct epoll_event binevent;
   binevent.events = EPOLLIN;
-  binevent.data.fd = binsock;
+  binevent.data.ptr = bin_data_init(binsock);
   epoll_ctl(epoll_fd, EPOLL_CTL_ADD,
 		binsock,&binevent);
 	struct epoll_event binevents[MAX_EVENTS];
@@ -124,31 +129,30 @@ void* bin_epoll(void* argv){
 			perror("binepoll_wait");
 			exit(EXIT_FAILURE);
 		}
-		for(int i = 0; i<bin_num_events; i++){
-			if(binevents[i].data.fd == binsock) {
+		for(int i = 0; i<bin_num_events; i++) {
+			Bin_data* bd = 
+				(Bin_data*)binevents[i].data.ptr;		
+			if(bd->fd == binsock) {
 				bcsock = accept(binsock, NULL, NULL);
 				if (bcsock < 0) quit("accept");
 				printf("cliente aceptado\n");
 				binevent.events = EPOLLIN | EPOLLET;
-				binevent.data.fd = bcsock;
-				Bin_data* bd = bin_data_init();
-				bin_data_setReading(bd,0);
-				binevent.data.ptr = bd;
+				Bin_data* bd = bin_data_init(bcsock);				
+				binevent.data.ptr = (void*)bd;
 				epoll_ctl(epoll_fd,EPOLL_CTL_ADD,
 					bcsock,&binevent);
-			} else {
-				Bin_data* bd = (Bin_data*)binevents[i].data.ptr;				
-				pthread_mutex_lock(&bd->buf_mutex);
+			} else {				
+				pthread_mutex_lock(&bd->r_mutex);
 				if(!bd->reading) {
-					pthread_mutex_unlock(&bd->buf_mutex);
+					pthread_mutex_unlock(&bd->r_mutex);
 					epollfd* efd = allocate_mem(
 						sizeof(epollfd), NULL); //TODO: cuando se libera??
 					efd->bd = binevents[i].data.ptr;					
-					efd->fd = binevents[i].data.fd;
 					concurrent_queue_enqueue(conqueue,
 						efd, (Copy) epfd_copy);
-				} else {					
-					pthread_mutex_unlock(&bd->buf_mutex);
+				} else {
+					puts("ESTOY LEYENDO");
+					pthread_mutex_unlock(&bd->r_mutex);
 				}
 			}
 		}

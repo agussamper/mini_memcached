@@ -2,15 +2,17 @@
 #define __BIN_DATA_H__
 
 #include <pthread.h>
+#include <stdint.h>
 
 typedef struct Bin_data {
-  int reading;
-  pthread_mutex_t buf_mutex;  
+  int fd;
+  int reading;    
+  pthread_mutex_t r_mutex;  
 } Bin_data;
 
-Bin_data* bin_data_init();
+Bin_data* bin_data_init(int fd);
 
-Bin_data bin_data_setReading(
-  Bin_data* bd, int set);
+char* bin_data_read(Bin_data* bd,
+  int* bytesRead, int fd);
 
 #endif

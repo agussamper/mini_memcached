@@ -28,11 +28,19 @@ spawn_processes(X) ->
     spawn(clientTest, get_elem, [str]),
     spawn_processes(X-1).
 
+sleep(Duration) ->
+    receive
+        wake_up -> ok
+    after Duration ->
+        ok
+    end.
+
 start() ->
     Pid = client:start(localhost),
-    Str = readlines("small_bible.txt"),
+    Str = readlines("bible_copy.txt"),
     StrBin = term_to_binary(Str),
     io:format("~p~n", [byte_size(StrBin)]),
     put(Pid, str, Str),
+    sleep(10000),
     client:close(Pid).
     %spawn_processes(10).

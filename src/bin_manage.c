@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <assert.h>
 #include "bin_manage.h"
 #include "malloc_interface.h"
 
@@ -29,53 +30,30 @@ int readn(int fd, void *buf, int len)
 		return -1;	\
 	rc; })
 
-int bin_consume(Cache cache , epollfd* efd) {
-	int fd = efd->fd;
+int bin_consume(Cache cache , char* buf, int fd) {
 	puts("ESTOY EN BIN CONSUME");
 	char comm;
-	int rc = READ(fd,&comm,1);
-  char buf[4];
+	int i = 0;
+	comm = buf[i++];
+  char buflen[4];
   char* key;
   int lenk;
 	switch (comm)
 	{
 	case PUT:
-		rc = READ(fd,buf,4);
-		if(rc < 4) {
-			char response = EINVALID;
-			write(fd,&response,1);
-			return 0;
-		}
-	  lenk = ntohl(*(int*)buf);
+		puts("ENTRO A PUT");
+		memcpy(buflen, buf+i, 4);
+		i+=4;
+	  lenk = ntohl(*(int*)buflen);
 		key = allocate_mem(lenk+1, NULL);
-		rc = READ(fd,key,lenk);
-		if(rc != lenk){
-			char response = EINVALID;
-			write(fd,&response,1);
-			printf("keylen error lenk: %d actual:%d\n",
-				lenk, rc);
-			free(key);
-			return 0;
-		}
-		rc = READ(fd,buf,4);
-		if(rc < 4){
-			char response = EINVALID;
-			write(fd,&response,1);
-			free(key);
-			return 0;
-		}
-		int lenv = ntohl(*(int*)buf);
+		memcpy(key,buf+i,lenk);
+		i+=lenk;
+		memcpy(buflen,buf+i,4);
+		i+=4;
+		int lenv = ntohl(*(int*)buflen);
 		char* value = allocate_mem(lenv+1,NULL);
-		rc = READ(fd,value,lenv);
-		if(rc != lenv){
-			char response = EINVALID;
-			write(fd,&response,1);
-			printf("vallen error lenv: %d actual:%d\n",
-				lenv, rc);
-			free(key);
-			free(value);
-			return 0;
-		}
+		memcpy(value,buf+i,lenv);
+		i+=lenv;
 		if(cache_insert(cache, key,
 				lenk, value, lenv, 1)){
 			char response = OK;
@@ -90,23 +68,12 @@ int bin_consume(Cache cache , epollfd* efd) {
 		free(value);
 		break;
 	case DEL:
-		rc = READ(fd,buf,4);
-		if(rc < 4){
-			char response = EINVALID;
-			write(fd,&response,1);
-			return 0;
-		}
-		lenk = ntohl(*(int*)buf);
+		memcpy(buflen, buf+i, 4);
+		i+=4;
+		lenk = ntohl(*(int*)buflen);
 		key = malloc(lenk+1);
-		rc = READ(fd,key,lenk);
-		if(rc != lenk){
-			free(key);
-			char response = EINVALID;
-			write(fd,&response,1);
-			printf("keylen error lenk: %d actual:%d\n",
-				lenk,rc);
-			return 0;
-		}
+		memcpy(key, buf+i, lenk);
+		i+=lenk;
 		if(cache_delete(cache,key,lenk)){
 			char response = OK;
 			write(fd,&response,1);
@@ -118,23 +85,12 @@ int bin_consume(Cache cache , epollfd* efd) {
 		free(key);
 		break;
 	case GET:    
-		rc = READ(fd,buf,4);
-		if(rc < 4){
-			char response = EINVALID;
-			write(fd,&response,1);
-			return 0;
-		}
-		lenk = ntohl(*(int*)buf);
+		memcpy(buflen, buf+i, 4);
+		i+=4;
+		lenk = ntohl(*(int*)buflen);
 		key = malloc(lenk+1);
-		rc = READ(fd,key,lenk);
-		if(rc != lenk){
-			char response = EINVALID;
-			write(fd,&response,1);
-			printf("keylen error lenk: %d actual:%d\n",
-				lenk,rc);
-			free(key);
-			return 0;
-		}
+		memcpy(key, buf+i, lenk);
+		i+=lenk;
     ValData* resp = cache_get(cache, 
 			key, lenk);
     if(NULL == resp){
@@ -145,7 +101,7 @@ int bin_consume(Cache cache , epollfd* efd) {
     }
 		uint32_t bigLen = resp->valSize;		
     long len = bigLen + 5;
-    char* response = malloc(len);
+    char* response = allocate_mem(len,NULL);
     response[0] = OK;
 		for(int i = 4; i > 0; i--) {
 			response[i] = bigLen & 0xFF;
