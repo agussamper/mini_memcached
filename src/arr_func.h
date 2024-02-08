@@ -3,8 +3,11 @@
 #ifndef __ARR_FUNC_H__
 #define __ARR_FUNC_H__
 
-
-//compara dos arreglos byte a byte
+/**
+ * compara dos arreglos byte a byte.
+ * Si son iguales retorna 0, en caso
+ * contrario 1
+ * */
 uint32_t arrcmp(char* arr1,
   uint32_t len1, char* arr2,
   uint32_t len2);

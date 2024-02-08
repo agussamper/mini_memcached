@@ -30,32 +30,29 @@ int readn(int fd, void *buf, int len)
 		return -1;	\
 	rc; })
 
-int bin_consume(Cache cache , char* buf, int fd) {
+void bin_consume(Cache cache , char* buf, int fd) {
 	puts("ESTOY EN BIN CONSUME");
 	char comm;
 	int i = 0;
 	comm = buf[i++];
   char buflen[4];
-  char* key;
-  int lenk;
+	int lenk;
 	switch (comm)
 	{
 	case PUT:
 		puts("ENTRO A PUT");
 		memcpy(buflen, buf+i, 4);
-		i+=4;
+		i += 4;
+		int startKey = i;
 	  lenk = ntohl(*(int*)buflen);
-		key = allocate_mem(lenk+1, NULL);
-		memcpy(key,buf+i,lenk);
 		i+=lenk;
 		memcpy(buflen,buf+i,4);
 		i+=4;
+		int startVal = i;
 		int lenv = ntohl(*(int*)buflen);
-		char* value = allocate_mem(lenv+1,NULL);
-		memcpy(value,buf+i,lenv);
-		i+=lenv;
-		if(cache_insert(cache, key,
-				lenk, value, lenv, 1)){
+		if(cache_insert(cache,
+				buf+startKey, lenk,
+				buf+startVal, lenv, 1)){
 			char response = OK;
 			puts("ESCRIBO RESPUESTA");
 			write(fd,&response,1);
@@ -65,18 +62,14 @@ int bin_consume(Cache cache , char* buf, int fd) {
 			write(fd,&response,1);
 			printf("insert error\n");	
 		}
-		free(key);
-		free(value);
 		puts("SALGO PUT");
 		break;
 	case DEL:
 		memcpy(buflen, buf+i, 4);
 		i+=4;
 		lenk = ntohl(*(int*)buflen);
-		key = malloc(lenk+1);
-		memcpy(key, buf+i, lenk);
-		i+=lenk;
-		if(cache_delete(cache,key,lenk)){
+		if(cache_delete(cache,
+				buf+i,lenk)){
 			char response = OK;
 			write(fd,&response,1);
 		}
@@ -84,22 +77,16 @@ int bin_consume(Cache cache , char* buf, int fd) {
 			char response = ENOTFOUND;
 			write(fd,&response,1);
 		}
-		free(key);
 		break;
 	case GET:    
 		memcpy(buflen, buf+i, 4);
 		i+=4;
 		lenk = ntohl(*(int*)buflen);
-		key = malloc(lenk+1);
-		memcpy(key, buf+i, lenk);
-		i+=lenk;
-    ValData* resp = cache_get(cache, 
-			key, lenk);
+    ValData* resp = 
+			cache_get(cache, buf+i, lenk);
     if(NULL == resp){
       char response = ENOTFOUND;
       write(fd,&response,1);
-			free(key);
-      return 0;
     }
 		uint32_t bigLen = resp->valSize;		
     long len = bigLen + 5;
@@ -128,13 +115,12 @@ int bin_consume(Cache cache , char* buf, int fd) {
 		}
 		strcpy(stats_msj+5,stats);
 		write(fd,stats_msj,len_msj);
+		free(stats_msj);
 		free(stats);
 		break;
 	default:
 		char c = EINVALID;
 		write(fd,&c,1);
-		return 0;
 		break;
-	}
-  return 0;	
+	}	
 }

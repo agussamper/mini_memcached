@@ -54,8 +54,9 @@ int isInList(List* list, char *key,
     uint32_t klen) {
   Node* node = *list;
   while(node != NULL) {
-    if(0 == arrcmp(node->key,
-        node->lenKey, key, klen)) {
+    if(arrcmp(key, klen, 
+      node->key, 
+      node->lenKey) == 0) {
       *list = node;
       return 1;
     }
@@ -116,6 +117,7 @@ int list_add(List* list,
   
   arrcpy(newKey, key, klen);
   newNode->key = newKey;
+  newNode->lenKey = klen;
   newNode->value = newValue;
   newNode->lenVal = vlen;
   newNode->isBin = isBin;
@@ -181,8 +183,8 @@ ValData* list_getValue(List* list,
     pthread_mutex_t* listMutex) {
   Node* node = *list;
   for(; node != NULL; node = node->next) {
-    if(0 == arrcmp(key, lenK,
-        node->key, node->lenKey)) {
+    if(arrcmp(key, lenK, 
+      node->key, node->lenKey) == 0) {
       uint32_t lenVal = node->lenVal;
       char val[lenVal];
       arrcpy(val, node->value, lenVal);

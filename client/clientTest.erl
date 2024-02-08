@@ -40,7 +40,7 @@ start() ->
     Str = readlines("bible_copy.txt"),
     StrBin = term_to_binary(Str),
     io:format("~p~n", [byte_size(StrBin)]),
-    put(Pid, str, Str).
+    put(Pid, str, Str),
     %sleep(70000),
-    %client:close(Pid).
-    %spawn_processes(10).
+    client:close(Pid),
+    spawn_processes(10).

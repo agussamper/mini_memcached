@@ -48,8 +48,10 @@ void* wait_for_req(void* argv){
 				close(epfd->fd);
 				epoll_ctl(epfd->fd, EPOLL_CTL_DEL,
 					binsock, NULL);
+				free(epfd);
 			}
 		} else {
+			assert(epfd->bd);
 			printf("binario detectado\n");
 			int ret = bin_data_read(epfd->bd, 
 				epfd->bd->fd);
@@ -58,9 +60,14 @@ void* wait_for_req(void* argv){
 				close(epfd->bd->fd);
 				epoll_ctl(epfd->bd->fd, EPOLL_CTL_DEL,
 					binsock, NULL);
+				bin_data_destroy(epfd->bd);
+				free(epfd->bd);
+				epfd->bd = NULL;
+				free(epfd);
 			} else {
 				if(epfd->bd->offset >= epfd->bd->bytesToRead) {
 					bin_consume(memcache, epfd->bd->buf, epfd->bd->fd);
+					bin_data_restart(epfd->bd);
 					puts("SALGO DE BIN CONSUME");
 				}
 			}
@@ -132,7 +139,8 @@ void* bin_epoll(void* argv){
 		}
 		for(int i = 0; i<bin_num_events; i++) {
 			Bin_data* bd = 
-				(Bin_data*)binevents[i].data.ptr;		
+				(Bin_data*)binevents[i].data.ptr;
+			assert(bd);		
 			if(bd->fd == binsock) {
 				bcsock = accept(binsock, NULL, NULL);
 				if (bcsock < 0) quit("accept");
@@ -144,18 +152,8 @@ void* bin_epoll(void* argv){
 					bcsock,&binevent);
 			} else {				
 				epollfd* efd = allocate_mem(
-					sizeof(epollfd), NULL); //TODO: cuando se libera??
+					sizeof(epollfd), NULL);
 				efd->bd = binevents[i].data.ptr;
-				int flags = fcntl(efd->bd->fd, F_GETFL, 0);
-				if (flags < 0) {
-        	perror("Error al obtener los flags del socket");
-        	exit(EXIT_FAILURE);
-    		}
-    		flags |= O_NONBLOCK;
-    		if (fcntl(efd->bd->fd, F_SETFL, flags) < 0) {
-    		  perror("Error al establecer el socket en modo no bloqueante");
-    		  exit(EXIT_FAILURE);
-    		}		
 				concurrent_queue_enqueue(conqueue,
 					efd, (Copy) epfd_copy);
 			}

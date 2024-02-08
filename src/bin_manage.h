@@ -6,6 +6,6 @@
 #include "cache.h"
 #include "epollfd.h"
 
-int bin_consume(Cache cache , char* buf, int fd);
+void bin_consume(Cache cache , char* buf, int fd);
 
 #endif
