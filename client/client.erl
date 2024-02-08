@@ -189,11 +189,14 @@ put(Pid, K, V) ->
     ValBin = term_to_binary(V),
     LengthK = byte_size(KeyBin),
     LengthV = byte_size(ValBin),
-    Packet = <<Code:8/unsigned-integer,
+    Data = <<Code:8/unsigned-integer,
              LengthK:32/big-unsigned-integer,
              KeyBin/binary,
              LengthV:32/big-unsigned-integer,
-             ValBin/binary>>,    
+             ValBin/binary>>,
+    LengthData = byte_size(Data),
+    Packet = <<LengthData:64/big-unsigned-integer,
+               Data/binary>>,    
     sendPacket(Pid, put, Packet).
 
 % get: pid(), Any -> {ok, Any} | atom
@@ -206,9 +209,12 @@ get(Pid, K) ->
     Code = ?GET,
     KeyBin = term_to_binary(K),
     LengthK = byte_size(KeyBin),
-    Packet = <<Code:8/unsigned-integer, 
+    Data = <<Code:8/unsigned-integer, 
                LengthK:32/big-unsigned-integer,
                KeyBin/binary>>,
+    LengthData = byte_size(Data),
+    Packet = <<LengthData:64/big-unsigned-integer,
+               Data/binary>>,
     sendPacket(Pid, get, Packet).
 
 % del: pid(), Ant -> {ok, Any} | atom

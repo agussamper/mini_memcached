@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <string.h>
 #include <inttypes.h>
+#include <fcntl.h>
 #include "memcached.h"
 #include "cache.h"
 #include "common.h"
@@ -50,18 +51,18 @@ void* wait_for_req(void* argv){
 			}
 		} else {
 			printf("binario detectado\n");
-			int bytesRead = 0;
-			char* buf = bin_data_read(epfd->bd, 
-				&bytesRead, epfd->bd->fd);
-			printf("BYTESREAD=%d\n", bytesRead);
-			if(bytesRead <= 0 || buf == NULL) {
+			int ret = bin_data_read(epfd->bd, 
+				epfd->bd->fd);
+			puts("SALGO DE READ");
+			if(ret == -1) {
 				close(epfd->bd->fd);
 				epoll_ctl(epfd->bd->fd, EPOLL_CTL_DEL,
 					binsock, NULL);
-			}
-			bin_consume(memcache, buf, epfd->bd->fd);
-			if(buf != NULL) {
-				free(buf);
+			} else {
+				if(epfd->bd->offset >= epfd->bd->bytesToRead) {
+					bin_consume(memcache, epfd->bd->buf, epfd->bd->fd);
+					puts("SALGO DE BIN CONSUME");
+				}
 			}
 		}
 	}
@@ -142,18 +143,21 @@ void* bin_epoll(void* argv){
 				epoll_ctl(epoll_fd,EPOLL_CTL_ADD,
 					bcsock,&binevent);
 			} else {				
-				pthread_mutex_lock(&bd->r_mutex);
-				if(!bd->reading) {
-					pthread_mutex_unlock(&bd->r_mutex);
-					epollfd* efd = allocate_mem(
-						sizeof(epollfd), NULL); //TODO: cuando se libera??
-					efd->bd = binevents[i].data.ptr;					
-					concurrent_queue_enqueue(conqueue,
-						efd, (Copy) epfd_copy);
-				} else {
-					puts("ESTOY LEYENDO");
-					pthread_mutex_unlock(&bd->r_mutex);
-				}
+				epollfd* efd = allocate_mem(
+					sizeof(epollfd), NULL); //TODO: cuando se libera??
+				efd->bd = binevents[i].data.ptr;
+				int flags = fcntl(efd->bd->fd, F_GETFL, 0);
+				if (flags < 0) {
+        	perror("Error al obtener los flags del socket");
+        	exit(EXIT_FAILURE);
+    		}
+    		flags |= O_NONBLOCK;
+    		if (fcntl(efd->bd->fd, F_SETFL, flags) < 0) {
+    		  perror("Error al establecer el socket en modo no bloqueante");
+    		  exit(EXIT_FAILURE);
+    		}		
+				concurrent_queue_enqueue(conqueue,
+					efd, (Copy) epfd_copy);
 			}
 		}
   }

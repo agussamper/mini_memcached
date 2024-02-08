@@ -57,6 +57,7 @@ int bin_consume(Cache cache , char* buf, int fd) {
 		if(cache_insert(cache, key,
 				lenk, value, lenv, 1)){
 			char response = OK;
+			puts("ESCRIBO RESPUESTA");
 			write(fd,&response,1);
 		}
 		else{
@@ -66,6 +67,7 @@ int bin_consume(Cache cache , char* buf, int fd) {
 		}
 		free(key);
 		free(value);
+		puts("SALGO PUT");
 		break;
 	case DEL:
 		memcpy(buflen, buf+i, 4);
