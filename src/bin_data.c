@@ -31,7 +31,7 @@ Bin_data* bin_data_restart(Bin_data* bd) {
   }
   bd->bufSize = 0;
   bd->offset = 0;
-  //bd->bytesToRead = 0;
+  bd->bytesToRead = 0;
   pthread_mutex_unlock(&bd->r_mutex);
   return bd;
 }
