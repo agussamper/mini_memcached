@@ -32,11 +32,13 @@ void* wait_for_req(void* argv){
 	ConcurrentQueue* conqueue = 
 		(ConcurrentQueue*) argv;
 	while(1){
+		puts("EN DEQUEUE");
 		epollfd* epfd = 
 			concurrent_queue_dequeue(
 				conqueue,
 				(Destroy)epfd_dstr,
 				(Copy) epfd_copy);
+		puts("SALI DEQUEUE");
 		printf("hola que tal que necesita\n");
 		if(!epfd->bd){
 			printf("texto detectado\n");
@@ -53,8 +55,7 @@ void* wait_for_req(void* argv){
 		} else {
 			assert(epfd->bd);
 			printf("binario detectado\n");
-			int ret = bin_data_read(epfd->bd, 
-				epfd->bd->fd);
+			int ret = bin_data_read(epfd->bd);
 			puts("SALGO DE READ");
 			if(ret == -1) {
 				close(epfd->bd->fd);
@@ -64,15 +65,28 @@ void* wait_for_req(void* argv){
 				free(epfd->bd);
 				epfd->bd = NULL;
 				free(epfd);
-			} else {
-				if(epfd->bd->offset >= epfd->bd->bytesToRead) {
-					bin_consume(memcache, epfd->bd->buf, epfd->bd->fd);
-					bin_data_restart(epfd->bd);
-					puts("SALGO DE BIN CONSUME");
-				}
+			} else if (ret == 0){
+				//if(epfd->bd->offset >= epfd->bd->bytesToRead) {
+				bin_consume(memcache, epfd->bd->buf, epfd->bd->fd);
+				bin_data_restart(epfd->bd);
+				puts("SALGO DE BIN CONSUME");
+				//}
 			}
 		}
 	}
+}
+
+void setnonblocking(int sockfd) {
+	// Configurar el socket para que sea no bloqueante
+  int flags = fcntl(sockfd, F_GETFL, 0);
+  if (flags == -1) {
+    perror("Error obteniendo los flags del socket");
+    exit(EXIT_FAILURE);
+  }
+  if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) == -1) {
+    perror("Error configurando el socket como no bloqueante");
+    exit(EXIT_FAILURE);
+  }
 }
 
 void* text_epoll(void* argv){
@@ -145,6 +159,7 @@ void* bin_epoll(void* argv){
 				bcsock = accept(binsock, NULL, NULL);
 				if (bcsock < 0) quit("accept");
 				printf("cliente aceptado\n");
+				setnonblocking(bcsock);
 				binevent.events = EPOLLIN | EPOLLET;
 				Bin_data* bd = bin_data_init(bcsock);				
 				binevent.data.ptr = (void*)bd;

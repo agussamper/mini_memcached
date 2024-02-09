@@ -1,7 +1,7 @@
 -module(clientTest).
 -import(client, [start/1, close/1, put/3,
   get/2]).
--export([start/0, get_elem/1]).
+-export([start/0, get_elem/2]).
 
 readlines(FileName) ->
     {ok, Device} = file:open(FileName, [read]),
@@ -15,17 +15,22 @@ get_all_lines(Device) ->
         Line -> Line ++ get_all_lines(Device)
     end.
 
-get_elem(Key) ->
+get_elem(Key, X) ->
     Pid = client:start(localhost),
     Val = client:get(Pid, Key),
-    file:write_file(pid_to_list(Pid) ++ ".txt",
-        io_lib:fwrite("~p. \n", [Val])),
+    %file:write_file("recibidos/" ++ 
+    %    integer_to_list(X) ++ " sep " ++
+    %    pid_to_list(Pid) ++ ".txt",
+    %    io_lib:fwrite("~p. \n", [Val])),
+    io:fwrite("~p) Recibi ~p bytes ~n",
+        [X, byte_size(term_to_binary(Val))]),
+    %string:length(Val),
     client:close(Pid).
 
 spawn_processes(0) ->
-    spawn(clientTest, get_elem, [str]);
+    spawn(clientTest, get_elem, [str, 0]);
 spawn_processes(X) ->
-    spawn(clientTest, get_elem, [str]),
+    spawn(clientTest, get_elem, [str, X]),
     spawn_processes(X-1).
 
 sleep(Duration) ->
@@ -43,4 +48,4 @@ start() ->
     put(Pid, str, Str),
     %sleep(70000),
     client:close(Pid),
-    spawn_processes(10).
+    spawn_processes(50).

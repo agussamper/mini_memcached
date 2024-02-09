@@ -165,7 +165,10 @@ recv_resp() ->
 % Envia un paquete y una instrucción al
 % proceso indicado en Pid, espera una respuesta
 % y luego devuelve la misma
-sendPacket(Pid, Ins, Packet) ->
+sendPacket(Pid, Ins, Data) ->
+    LengthData = byte_size(Data),
+    Packet = <<LengthData:64/big-unsigned-integer,
+               Data/binary>>,    
     case is_process_alive(Pid) of
         true ->
             Pid!{Ins,self(),Packet},
@@ -189,14 +192,11 @@ put(Pid, K, V) ->
     ValBin = term_to_binary(V),
     LengthK = byte_size(KeyBin),
     LengthV = byte_size(ValBin),
-    Data = <<Code:8/unsigned-integer,
+    Packet = <<Code:8/unsigned-integer,
              LengthK:32/big-unsigned-integer,
              KeyBin/binary,
              LengthV:32/big-unsigned-integer,
-             ValBin/binary>>,
-    LengthData = byte_size(Data),
-    Packet = <<LengthData:64/big-unsigned-integer,
-               Data/binary>>,    
+             ValBin/binary>>,  
     sendPacket(Pid, put, Packet).
 
 % get: pid(), Any -> {ok, Any} | atom
@@ -209,12 +209,9 @@ get(Pid, K) ->
     Code = ?GET,
     KeyBin = term_to_binary(K),
     LengthK = byte_size(KeyBin),
-    Data = <<Code:8/unsigned-integer, 
+    Packet = <<Code:8/unsigned-integer, 
                LengthK:32/big-unsigned-integer,
                KeyBin/binary>>,
-    LengthData = byte_size(Data),
-    Packet = <<LengthData:64/big-unsigned-integer,
-               Data/binary>>,
     sendPacket(Pid, get, Packet).
 
 % del: pid(), Ant -> {ok, Any} | atom

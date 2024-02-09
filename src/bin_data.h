@@ -23,7 +23,6 @@ Bin_data* bin_data_restart(Bin_data* bd);
 
 void bin_data_destroy(Bin_data* bd);
 
-int bin_data_read(Bin_data* bd,
-  int fd);
+int bin_data_read(Bin_data* bd);
 
 #endif

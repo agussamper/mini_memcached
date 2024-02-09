@@ -87,21 +87,22 @@ void bin_consume(Cache cache , char* buf, int fd) {
     if(NULL == resp){
       char response = ENOTFOUND;
       write(fd,&response,1);
-    }
-		uint32_t bigLen = resp->valSize;		
-    long len = bigLen + 5;
-    char* response = allocate_mem(len,NULL);
-    response[0] = OK;
-		for(int i = 4; i > 0; i--) {
-			response[i] = bigLen & 0xFF;
-			bigLen = bigLen >> 8;
+    } else {
+			uint32_t bigLen = resp->valSize;		
+    	long len = bigLen + 5;
+    	char* response = allocate_mem(len,NULL);
+    	response[0] = OK;
+			for(int i = 4; i > 0; i--) {
+				response[i] = bigLen & 0xFF;
+				bigLen = bigLen >> 8;
+			}
+			memcpy(response+5,
+				resp->value, resp->valSize);
+    	write(fd,response,len);
+			free(response);
+			free(resp->value);
+			free(resp);
 		}
-		memcpy(response+5,
-			resp->value, resp->valSize);
-    write(fd,response,len);
-		free(response);
-		free(resp->value);
-		free(resp);
 		break;
 	case STATS:
 		char* stats = cache_getStats(cache);
