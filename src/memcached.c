@@ -74,7 +74,10 @@ void handle_user(int epollfd, User_data* ud) {
 			epoll_ctl(epollfd, EPOLL_CTL_MOD,
 				ud->fd, &event);
 			return;				
-		}	
+		}
+		printf("readRet VALOR DESCONOCIDO %d\n", readRet);	
+		perror("readRet error");
+    exit(EXIT_FAILURE);
 	}
 }
 

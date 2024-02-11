@@ -78,7 +78,7 @@ int user_data_read(User_data* bd) {
 		return -1;
   }
   bd->offset += rc;
-  if(rc < READSIZE) {
+  if(rc <= READSIZE) {
     printf("OFFSET=%d\n",bd->offset);
     puts("STOP");
     if(bd->offset >= bd->bytesToRead) {
