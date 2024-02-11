@@ -10,6 +10,9 @@
 #include <string.h>
 #include <inttypes.h>
 #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <syscall.h>
 #include "memcached.h"
 #include "cache.h"
 #include "common.h"
@@ -18,68 +21,59 @@
 #include "../concurrent_queue/concurrent_queue.h"
 #include "text_manage.h"
 #include "bin_manage.h"
-#include "bin_data.h"
-#include "epollfd.h"
+#include "user_data.h"
 #define MAX_THREADS 6
 #define MAX_EVENTS 10
 
 Cache memcache;
 
-int textsock;
-int binsock;
+typedef struct epoll_loop {
+	int epollfd;
+	int fd_text;
+	int fd_bin;
+} epoll_loop;
 
-void* wait_for_req(void* argv){
-	ConcurrentQueue* conqueue = 
-		(ConcurrentQueue*) argv;
-	while(1){
-		puts("EN DEQUEUE");
-		epollfd* epfd = 
-			concurrent_queue_dequeue(
-				conqueue,
-				(Destroy)epfd_dstr,
-				(Copy) epfd_copy);
-		puts("SALI DEQUEUE");
-		printf("hola que tal que necesita\n");
-		if(!epfd->bd){
-			printf("texto detectado\n");
-			char buf[2048];
-			int n = text_consume(
-				memcache, epfd->fd, buf); //TODO: no pasar buf
-			printf("text:%d\n",n);
-			if(n < 0) {			
-				close(epfd->fd);
-				epoll_ctl(epfd->fd, EPOLL_CTL_DEL,
-					binsock, NULL);
-				free(epfd);
-			}
-		} else {
-			assert(epfd->bd);
-			printf("binario detectado\n");
-			int ret = bin_data_read(epfd->bd);
-			puts("SALGO DE READ");
-			if(ret == -1) {
-				close(epfd->bd->fd);
-				epoll_ctl(epfd->bd->fd, EPOLL_CTL_DEL,
-					binsock, NULL);
-				bin_data_destroy(epfd->bd);
-				free(epfd->bd);
-				epfd->bd = NULL;
-				free(epfd);
-			} else if (ret == 0){
-				//if(epfd->bd->offset >= epfd->bd->bytesToRead) {
-				bin_consume(memcache, epfd->bd->buf, epfd->bd->fd);
-				bin_data_restart(epfd->bd);
-				puts("SALGO DE BIN CONSUME");
-				//}
-			}
+void handle_user(int epollfd, User_data* ud) {	
+	while (1) {
+		puts("antes de read");
+		int readRet = user_data_read(ud);
+		printf("readRet=%d\n",readRet);
+		if(-1 == readRet) {
+			close(ud->fd);
+			user_data_destroy(ud);
+			epoll_ctl(ud->fd, EPOLL_CTL_DEL,
+				ud->fd, NULL);		
+			return;
 		}
+		if(0 == readRet) {
+			if(ud->mode == BINARY) {
+				puts("bin");
+				bin_consume(memcache, 
+					ud->buf, ud->fd);
+				user_data_restart(ud);
+				struct epoll_event event;
+				event.data.ptr = ud;
+				event.events = EPOLLIN | EPOLLONESHOT;
+				epoll_ctl(epollfd, EPOLL_CTL_MOD,
+					ud->fd, &event);				
+			} else if(ud->mode == TEXT){
+				puts("text");
+				//TODO: completar
+			} else {
+				perror("handle_user: invalid mode");
+				printf("fd=%d, mode=%d\n",
+					ud->fd, ud->mode);
+				exit(EXIT_FAILURE);
+			}
+			return;
+		}	
 	}
 }
 
 void setnonblocking(int sockfd) {
 	// Configurar el socket para que sea no bloqueante
   int flags = fcntl(sockfd, F_GETFL, 0);
-  if (flags == -1) {
+  if (-1 == flags) {
     perror("Error obteniendo los flags del socket");
     exit(EXIT_FAILURE);
   }
@@ -89,123 +83,111 @@ void setnonblocking(int sockfd) {
   }
 }
 
-void* text_epoll(void* argv){
-	ConcurrentQueue* conqueue
-	 	= (ConcurrentQueue*) argv;
-	int epoll_fd = epoll_create1(0);
-  printf("text:hola\n");
-	int tcsock;
-  struct epoll_event textevent;
-  textevent.events = EPOLLIN;
-  textevent.data.fd = textsock;
-  epoll_ctl(epoll_fd, EPOLL_CTL_ADD,
-		textsock, &textevent);
-	struct epoll_event textevents[MAX_EVENTS];
-	printf("epoll texto configurado\n");
-	while (1){
-		int text_num_events = epoll_wait(
-			epoll_fd, textevents, MAX_EVENTS, -1);
-		if (text_num_events == -1) {
-			perror("textepoll_wait");
+int user_accept(epoll_loop* eloop, int mode) {
+	struct epoll_event epollevent;
+	int acceptret;
+	while(1) {		
+		if(mode == BINARY) {
+			puts("antes de accept4");
+			acceptret = accept4(eloop->fd_bin,
+			 NULL, NULL, O_NONBLOCK);
+		} else if(mode == TEXT) {
+			acceptret = accept4(eloop->fd_text,
+			 NULL, NULL, O_NONBLOCK);
+		} else {
+			perror("invalid mode");
 			exit(EXIT_FAILURE);
 		}
-		for(int i = 0; i<text_num_events; i++){
-			if(textevents[i].data.fd == textsock){
-				tcsock = accept(textsock, NULL, NULL);
-				if (tcsock < 0) quit("accept");
-				printf("cliente aceptado\n");
-				textevent.events = EPOLLIN | EPOLLET;
-				textevent.data.fd = tcsock;
-				epoll_ctl(epoll_fd, EPOLL_CTL_ADD,
-					tcsock, &textevent);
+		printf("acceptret=%d\n", acceptret);		
+		if(acceptret == -1) {
+			int err = errno;
+			if(err == EAGAIN || err == EWOULDBLOCK) {
+				return;
 			}
-			else{
-				epollfd* epollfd = malloc(sizeof(epollfd));
-				epollfd->bd = NULL;
-				epollfd->fd = textevents[i].data.fd;
-				concurrent_queue_enqueue(conqueue,
-					epollfd, (Copy) epfd_copy);
-			}
+			printf("error in accept4()! %s\n",
+				strerror(errno));
+			exit(EXIT_FAILURE);
 		}
-  }
+		epollevent.events = EPOLLIN | EPOLLONESHOT;
+		epollevent.data.ptr = 
+			(void*)user_data_init(acceptret, mode); 
+		epoll_ctl(eloop->epollfd, EPOLL_CTL_ADD,
+			acceptret, &epollevent);
+	}
 }
 
-void* bin_epoll(void* argv){
-	ConcurrentQueue* conqueue =
-		 (ConcurrentQueue*) argv;
-  printf("bin:hola\n");
-	int epoll_fd = epoll_create1(0);
-	int bcsock;
-  struct epoll_event binevent;
-  binevent.events = EPOLLIN;
-  binevent.data.ptr = bin_data_init(binsock);
-  epoll_ctl(epoll_fd, EPOLL_CTL_ADD,
-		binsock,&binevent);
-	struct epoll_event binevents[MAX_EVENTS];
-	printf("epoll bin configurado\n");
-	while (1){
-		int bin_num_events = 
-			epoll_wait(epoll_fd,
-				binevents, MAX_EVENTS, -1);
-		if (bin_num_events == -1) {
+void* eventloop(void* arg) {
+	epoll_loop* eloop = (epoll_loop*)arg;
+	struct epoll_event events[MAX_EVENTS];
+	int num_events;
+	while(1) {
+		num_events = 
+			epoll_wait(eloop->epollfd,
+				events, MAX_EVENTS, -1);
+		printf("PASO WAIT, hilo=%d\n", syscall(__NR_gettid));
+		if (num_events == -1) {
 			perror("binepoll_wait");
 			exit(EXIT_FAILURE);
 		}
-		for(int i = 0; i<bin_num_events; i++) {
-			Bin_data* bd = 
-				(Bin_data*)binevents[i].data.ptr;
-			assert(bd);		
-			if(bd->fd == binsock) {
-				bcsock = accept(binsock, NULL, NULL);
-				if (bcsock < 0) quit("accept");
-				printf("cliente aceptado\n");
-				setnonblocking(bcsock);
-				binevent.events = EPOLLIN | EPOLLET;
-				Bin_data* bd = bin_data_init(bcsock);				
-				binevent.data.ptr = (void*)bd;
-				epoll_ctl(epoll_fd,EPOLL_CTL_ADD,
-					bcsock,&binevent);
-			} else {				
-				epollfd* efd = allocate_mem(
-					sizeof(epollfd), NULL);
-				efd->bd = binevents[i].data.ptr;
-				concurrent_queue_enqueue(conqueue,
-					efd, (Copy) epfd_copy);
+		for(int i = 0; i < num_events; i++) {
+			User_data* ud = 
+				(User_data*)events[i].data.ptr;
+			assert(ud);		
+			if(ud->fd == eloop->fd_bin) {
+				puts("por aceptar cliente binario");
+				user_accept(eloop, BINARY);
+				puts("cliente aceptado");
+			} else if(ud->fd == eloop->fd_text) {	
+				puts("por aceptar cliente texto");			
+				user_accept(eloop, TEXT);
+			} else {
+				puts("manejo peticion");
+				handle_user(eloop->epollfd, ud);
+				puts("peticion manejada");
 			}
 		}
-  }
+	}
 }
 
-void server_start(){
-	//text fd
-	printf("iniciando servidor\n");
+void epoll_start(int binsock, int textsock){
+	setnonblocking(binsock);
+	setnonblocking(textsock);
+	int epoll_fd = epoll_create1(0);
+	int bcsock;
+  struct epoll_event epollevent;
+  epollevent.events = EPOLLIN | EPOLLET;
+	
+	epoll_loop* eloop = malloc(sizeof(epoll_loop));
+	assert(eloop);
+	eloop->epollfd = epoll_fd;
+	eloop->fd_bin = binsock;
+	eloop->fd_text = textsock;
+	
+  epollevent.data.ptr = user_data_init(binsock, BINARY);
+  epoll_ctl(epoll_fd, EPOLL_CTL_ADD,
+		binsock, &epollevent);
 
+	epollevent.data.ptr = user_data_init(textsock, TEXT);
+	epoll_ctl(epoll_fd, EPOLL_CTL_ADD,
+		textsock, &epollevent);
 
-	/**
-	 * ACA SE VAN A GUARDAR LOS PEDIDOS, LOS
-	 * THREADS TOMARAN DE A UNO Y ATENDERAN
-	 * SIGUIENDO UNA LOGICA DE PRODUCTOR 
-	 * CONSUMIDOR CON ESTRUCTURA FIFO
-	*/
-	ConcurrentQueue* conqueue = 
-		malloc(sizeof(ConcurrentQueue));
+	printf("epoll bin configurado\n");
 
-	concurrent_queue_init(conqueue,30);
-	printf("conqueue inicializada\n");
 	pthread_t threads[MAX_THREADS];
-	for (size_t i = 0; i < MAX_THREADS -2; i++)
-	{
-		pthread_create(&threads[i], NULL,
-			wait_for_req, (void*) (conqueue));
+	for (size_t i = 0; i < MAX_THREADS; i++) {
+		pthread_create(threads+i, NULL,
+			eventloop, (void*) eloop);
 	}
-	pthread_t eptext;
-	pthread_t epbin;
-	pthread_create(&eptext, NULL,
-		text_epoll, (void*) (conqueue));
-	pthread_create(&epbin, NULL, 
-		bin_epoll, (void*) (conqueue));
-	printf("hilos creados \n");
-	pthread_join(epbin,NULL);
+
+	for (size_t i = 0; i < MAX_THREADS; i++) {
+		pthread_join(threads[i],NULL);
+	}
+}
+
+void server_start(int textsock, int binsock) {
+	//text fd
+	printf("iniciando servidor\n");	
+	epoll_start(binsock, textsock);	
 }
 
 unsigned str_KRHash(const char *s, uint32_t len) {
@@ -219,11 +201,9 @@ unsigned str_KRHash(const char *s, uint32_t len) {
 }
 
 int memcached_cache_start(int tsock,int bsock){
-	textsock=tsock;
-	binsock=bsock;
 	printf("iniciando\n");
 	memcache = cache_create(1000000,str_KRHash);
 	printf("cache creada\n");
-	server_start();
+	server_start(tsock, bsock);
 	return 0;
 };

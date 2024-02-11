@@ -1,8 +1,7 @@
-#ifndef __HASHTABLE_H__
-#define __HASHTABLE_H__
+#ifndef __MEMCACHED_H__
+#define __MEMCACHED_H__
 
 #include "cache.h"
-
 
 int memcached_cache_start(int tsock,int bsock);
 

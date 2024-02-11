@@ -1,4 +1,4 @@
-#include "bin_data.h"
+#include "user_data.h"
 #include "malloc_interface.h"
 #include <stdlib.h>
 #include <unistd.h>
@@ -10,21 +10,19 @@
 
 #define READSIZE 1000
 
-Bin_data* bin_data_init(int fd) {
-  Bin_data* bd = 
-    allocate_mem(sizeof(Bin_data), NULL);
-  bd->fd = fd;
-  bd->buf = NULL;
-  bd->bufSize = 0;
-  bd->offset = 0;
-  //bd->bytesToRead = 0;
-  assert(!pthread_mutex_init(
-    &bd->r_mutex, NULL));
-  return bd;
+User_data* user_data_init(int fd, int mode) {
+  User_data* ud = 
+    allocate_mem(sizeof(User_data), NULL);
+  ud->fd = fd;
+  ud->mode = mode;
+  ud->buf = NULL;
+  ud->bufSize = 0;
+  ud->offset = 0;
+  ud->bytesToRead = 0;
+  return ud;
 }
 
-Bin_data* bin_data_restart(Bin_data* bd) {
-  pthread_mutex_lock(&bd->r_mutex);
+User_data* user_data_restart(User_data* bd) {
   if(bd->buf !=NULL) {
     free(bd->buf);
     bd->buf = NULL;
@@ -32,30 +30,23 @@ Bin_data* bin_data_restart(Bin_data* bd) {
   bd->bufSize = 0;
   bd->offset = 0;
   bd->bytesToRead = 0;
-  pthread_mutex_unlock(&bd->r_mutex);
   return bd;
 }
 
-void bin_data_destroy(Bin_data* bd) {
-  pthread_mutex_lock(&bd->r_mutex);
-  if(bd->buf !=NULL) {
-    free(bd->buf);
-    bd->buf = NULL;
+void user_data_destroy(User_data* ud) {
+  if(ud->buf !=NULL) {
+    free(ud->buf);
+    ud->buf = NULL;
   }
-  pthread_mutex_unlock(&bd->r_mutex);
-  pthread_mutex_destroy(&bd->r_mutex);
+  free(ud);
 }
 
-int bin_data_read(Bin_data* bd) {
-  puts("QUIERO EL MUTEX");
-  pthread_mutex_lock(&bd->r_mutex);
-  puts("MUTEX TOMADO");
+int user_data_read(User_data* bd) {
   int fd = bd->fd;
   if(bd->buf == NULL) {
     bd->bufSize=2000;
     bd->buf =
       allocate_mem(bd->bufSize, NULL); 
-    puts("buf inicializado");
     bd->offset = 0;
     char buflen[8];   
     read(fd, buflen, 8);
@@ -78,17 +69,14 @@ int bin_data_read(Bin_data* bd) {
     int error = errno;
     if (rc == 0) {
       puts("MENOS 1");
-      pthread_mutex_unlock(&bd->r_mutex);
       return -1;
     }
 		if (rc < 0) {
       if(error == EINVAL || error == EWOULDBLOCK) {
-        puts("EINVAL O EWOULDBLOCK");
-        pthread_mutex_unlock(&bd->r_mutex);
+        puts("user_data_read: EINVAL O EWOULDBLOCK");
         return 1;
       }
       printf("error in read()! %s\n", strerror(error));      
-      pthread_mutex_unlock(&bd->r_mutex);
 			return -1;
     }
     bd->offset += rc;
@@ -97,10 +85,8 @@ int bin_data_read(Bin_data* bd) {
       puts("STOP");
       stop=1;
       if(bd->offset >= bd->bytesToRead) {
-        pthread_mutex_unlock(&bd->r_mutex);
         return 0;
       }
-      pthread_mutex_unlock(&bd->r_mutex);
       return 1;
     }		
 	}   

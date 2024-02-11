@@ -48,4 +48,4 @@ start() ->
     put(Pid, str, Str),
     %sleep(70000),
     client:close(Pid),
-    spawn_processes(50).
+		spawn_processes(50).
