@@ -40,9 +40,9 @@ void handle_user(int epollfd, User_data* ud) {
 		printf("readRet=%d\n",readRet);
 		if(-1 == readRet) {
 			close(ud->fd);
-			user_data_destroy(ud);
 			epoll_ctl(ud->fd, EPOLL_CTL_DEL,
-				ud->fd, NULL);		
+				ud->fd, NULL);
+			user_data_destroy(ud);		
 			return;
 		}
 		if(0 == readRet) {
