@@ -66,6 +66,14 @@ void handle_user(int epollfd, User_data* ud) {
 				exit(EXIT_FAILURE);
 			}
 			return;
+		}
+		if(1 == readRet) {
+			struct epoll_event event;
+			event.data.ptr = ud;
+			event.events = EPOLLIN | EPOLLONESHOT;
+			epoll_ctl(epollfd, EPOLL_CTL_MOD,
+				ud->fd, &event);
+			return;				
 		}	
 	}
 }
@@ -83,7 +91,7 @@ void setnonblocking(int sockfd) {
   }
 }
 
-int user_accept(epoll_loop* eloop, int mode) {
+void user_accept(epoll_loop* eloop, int mode) {
 	struct epoll_event epollevent;
 	int acceptret;
 	while(1) {		
@@ -124,7 +132,7 @@ void* eventloop(void* arg) {
 		num_events = 
 			epoll_wait(eloop->epollfd,
 				events, MAX_EVENTS, -1);
-		printf("PASO WAIT, hilo=%d\n", syscall(__NR_gettid));
+		printf("PASO WAIT, hilo=%d\n numevents=%d\n", syscall(__NR_gettid), num_events);
 		if (num_events == -1) {
 			perror("binepoll_wait");
 			exit(EXIT_FAILURE);
@@ -157,11 +165,10 @@ void epoll_start(int binsock, int textsock){
   struct epoll_event epollevent;
   epollevent.events = EPOLLIN | EPOLLET;
 	
-	epoll_loop* eloop = malloc(sizeof(epoll_loop));
-	assert(eloop);
-	eloop->epollfd = epoll_fd;
-	eloop->fd_bin = binsock;
-	eloop->fd_text = textsock;
+	epoll_loop eloop;
+	eloop.epollfd = epoll_fd;
+	eloop.fd_bin = binsock;
+	eloop.fd_text = textsock;
 	
   epollevent.data.ptr = user_data_init(binsock, BINARY);
   epoll_ctl(epoll_fd, EPOLL_CTL_ADD,
@@ -176,7 +183,7 @@ void epoll_start(int binsock, int textsock){
 	pthread_t threads[MAX_THREADS];
 	for (size_t i = 0; i < MAX_THREADS; i++) {
 		pthread_create(threads+i, NULL,
-			eventloop, (void*) eloop);
+			eventloop, (void*) &eloop);
 	}
 
 	for (size_t i = 0; i < MAX_THREADS; i++) {

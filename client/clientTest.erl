@@ -31,6 +31,7 @@ spawn_processes(0) ->
     spawn(clientTest, get_elem, [str, 0]);
 spawn_processes(X) ->
     spawn(clientTest, get_elem, [str, X]),
+	%sleep(500),
     spawn_processes(X-1).
 
 sleep(Duration) ->
@@ -46,6 +47,6 @@ start() ->
     StrBin = term_to_binary(Str),
     io:format("~p~n", [byte_size(StrBin)]),
     put(Pid, str, Str),
-    %sleep(70000),
+    %sleep(5000),
     client:close(Pid),
-		spawn_processes(50).
+		spawn_processes(100).

@@ -57,37 +57,33 @@ int user_data_read(User_data* bd) {
     }
   }
   int rc;
-  int stop = 0;
-	while (stop != 1) {    
-    if(bd->offset + READSIZE > bd->bufSize) {
-      bd->bufSize *= 2;
-      bd->buf = realloc(bd->buf, bd->bufSize); //TODO: crear realloc en allocate_mem
-      assert(bd->buf);
-    }
-    assert(bd->buf); 
-		rc = read(fd, bd->buf+bd->offset, READSIZE);    
-    int error = errno;
-    if (rc == 0) {
-      puts("MENOS 1");
-      return -1;
-    }
-		if (rc < 0) {
-      if(error == EINVAL || error == EWOULDBLOCK) {
-        puts("user_data_read: EINVAL O EWOULDBLOCK");
-        return 1;
-      }
-      printf("error in read()! %s\n", strerror(error));      
-			return -1;
-    }
-    bd->offset += rc;
-    if(rc < READSIZE) {
-      printf("OFFSET=%d\n",bd->offset);
-      puts("STOP");
-      stop=1;
-      if(bd->offset >= bd->bytesToRead) {
-        return 0;
-      }
+  if(bd->offset + READSIZE > bd->bufSize) {
+    bd->bufSize *= 2;
+    bd->buf = realloc(bd->buf, bd->bufSize); //TODO: crear realloc en allocate_mem
+    assert(bd->buf);
+  }
+  assert(bd->buf); 
+	rc = read(fd, bd->buf+bd->offset, READSIZE);    
+  int error = errno;
+  if (rc == 0) {
+    puts("MENOS 1");
+    return -1;
+  }
+	if (rc < 0) {
+    if(error == EINVAL || error == EWOULDBLOCK) {
+      puts("user_data_read: EINVAL O EWOULDBLOCK");
       return 1;
-    }		
-	}   
+    }
+    printf("error in read()! %s\n", strerror(error));      
+		return -1;
+  }
+  bd->offset += rc;
+  if(rc < READSIZE) {
+    printf("OFFSET=%d\n",bd->offset);
+    puts("STOP");
+    if(bd->offset >= bd->bytesToRead) {
+      return 0;
+    }
+    return 1;
+  }		
 }
