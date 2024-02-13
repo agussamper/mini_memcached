@@ -33,51 +33,67 @@ typedef struct epoll_loop {
 	int fd_bin;
 } epoll_loop;
 
-void handle_user(int epollfd, User_data* ud) {	
-	while (1) {
-		puts("antes de read");
-		int readRet = user_data_read(ud);
-		printf("readRet=%d\n",readRet);
-		if(-1 == readRet) {
-			close(ud->fd);
-			epoll_ctl(ud->fd, EPOLL_CTL_DEL,
-				ud->fd, NULL);
-			user_data_destroy(ud);		
-			return;
-		}
-		if(0 == readRet) {
-			if(ud->mode == BINARY) {
-				puts("bin");
-				bin_consume(memcache, 
-					ud->buf, ud->fd);
-				user_data_restart(ud);
+void handle_user(int epollfd, User_data* ud) {
+	if(ud->mode == BINARY){
+		while (1) {
+			puts("antes de read");
+			int readRet = user_data_read(ud);
+			printf("readRet=%d\n",readRet);
+			if(-1 == readRet) {
+				close(ud->fd);
+				epoll_ctl(ud->fd, EPOLL_CTL_DEL,
+					ud->fd, NULL);
+				user_data_destroy(ud);		
+				return;
+			}
+			if(0 == readRet) {
+				if(ud->mode == BINARY) {
+					puts("bin");
+					bin_consume(memcache, 
+						ud->buf, ud->fd);
+					user_data_restart(ud);
+					struct epoll_event event;
+					event.data.ptr = ud;
+					event.events = EPOLLIN | EPOLLONESHOT;
+					epoll_ctl(epollfd, EPOLL_CTL_MOD,
+						ud->fd, &event);				
+				} else if(ud->mode == TEXT){
+					puts("text");
+					//TODO: completar
+				} else {
+					perror("handle_user: invalid mode");
+					printf("fd=%d, mode=%d\n",
+						ud->fd, ud->mode);
+					exit(EXIT_FAILURE);
+				}
+				return;
+			}
+			if(1 == readRet) {
 				struct epoll_event event;
 				event.data.ptr = ud;
 				event.events = EPOLLIN | EPOLLONESHOT;
 				epoll_ctl(epollfd, EPOLL_CTL_MOD,
-					ud->fd, &event);				
-			} else if(ud->mode == TEXT){
-				puts("text");
-				//TODO: completar
-			} else {
-				perror("handle_user: invalid mode");
-				printf("fd=%d, mode=%d\n",
-					ud->fd, ud->mode);
-				exit(EXIT_FAILURE);
+					ud->fd, &event);
+				return;				
 			}
-			return;
+			printf("readRet VALOR DESCONOCIDO %d\n", readRet);	
+			perror("readRet error");
+			exit(EXIT_FAILURE);
 		}
-		if(1 == readRet) {
-			struct epoll_event event;
-			event.data.ptr = ud;
-			event.events = EPOLLIN | EPOLLONESHOT;
-			epoll_ctl(epollfd, EPOLL_CTL_MOD,
-				ud->fd, &event);
-			return;				
-		}
-		printf("readRet VALOR DESCONOCIDO %d\n", readRet);	
-		perror("readRet error");
-    exit(EXIT_FAILURE);
+	}
+	else{
+			ud->buf = malloc(2048);
+			ud->bufSize = 2048;
+			while(1){
+				int res = text_consume(memcache,ud->fd,ud->buf,&ud->offset);
+				if(res == -1){
+					close(ud->fd);
+					epoll_ctl(ud->fd, EPOLL_CTL_DEL,
+					ud->fd, NULL);
+					user_data_destroy(ud);		
+				return;
+				}
+			}
 	}
 }
 
@@ -135,7 +151,7 @@ void* eventloop(void* arg) {
 		num_events = 
 			epoll_wait(eloop->epollfd,
 				events, MAX_EVENTS, -1);
-		printf("PASO WAIT, hilo=%d\n numevents=%d\n", syscall(__NR_gettid), num_events);
+		printf("PASO WAIT, hilo=%ld\n numevents=%d\n", syscall(__NR_gettid), num_events);
 		if (num_events == -1) {
 			perror("binepoll_wait");
 			exit(EXIT_FAILURE);
@@ -153,7 +169,7 @@ void* eventloop(void* arg) {
 				user_accept(eloop, TEXT);
 			} else {
 				puts("manejo peticion");
-				handle_user(eloop->epollfd, ud);
+ 				handle_user(eloop->epollfd, ud);
 				puts("peticion manejada");
 			}
 		}

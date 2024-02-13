@@ -5,6 +5,6 @@
 #include "cache.h"
 
 int text_consume(Cache cache,
-  int fd, char buf[]);
+  int fd, char buf[], u_int64_t* offset);
 
 #endif
