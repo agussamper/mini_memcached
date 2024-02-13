@@ -143,7 +143,7 @@ ValData* cache_get(Cache cache, char* key,
     pthread_mutex_unlock(mutex);
     return NULL;
   }
-
+  
   //Actualizo evict e intento volver a agregar
   //el elemento por si fué desalojado por
   //allocate_mem en list_getValue
@@ -167,6 +167,7 @@ ValData* cache_get(Cache cache, char* key,
     evict_update(cache->evict, *list);
     break;
   }
+  
   pthread_mutex_unlock(mutex);
   return valData;
 }

@@ -26,9 +26,11 @@ void text_handle(
 			write(fd,response,len);
 			return;
 		} 
+		char val[lens[2]+1]; 
+		sprintf(val,"%s\0",toks[2]);
 		cache_insert(cache,
 			toks[1], lens[1], 
-			toks[2], lens[2], 0);
+			val , lens[2] + 1, 0);
 		write(fd,"OK\n",3);
 		return;
 	}
@@ -48,8 +50,9 @@ void text_handle(
 			return;
 		}
 		char res[2045];
+		//printf("get value: %s \n len value %ld \n %d \n",val->value,val->valSize,strlen(val->value));
 		sprintf(res,"OK %s\n",val->value);
-		write(fd,res,strlen(res));
+		write(fd,res,val->valSize+4);
 		free(val->value);
 		free(val);
 		return;
@@ -147,7 +150,7 @@ int text_consume(Cache cache, int fd, char buf[2048], uint64_t* offset){
 			int ntok;
 			ntok = text_parser(buf,toks,lens);
 			for(int i =0; i <ntok;i++){
-				printf("tok%d : %s\n",i,toks[i]);
+				printf("tok%d : %s len : %d\n",i,toks[i],lens[i]);
 			}
 			text_handle(cache, fd,
         toks,lens,ntok);
