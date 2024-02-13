@@ -144,9 +144,9 @@ ValData* cache_get(Cache cache, char* key,
     return NULL;
   }
 
-  //Actualizo evict e intento volver a agregar
-  //el elemento por si fué desalojado por
-  //allocate_mem en list_getValue
+  // Actualizo evict y vuelvo a agregar el
+  // valor por si se borró en list_getValue
+  // o quedo NULL en node->value
   int res = list_add(list,
     key, keyLen, valData->value,
     valData->valSize, valData->isBin,

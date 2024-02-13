@@ -141,9 +141,15 @@ int list_remove_key(List* list,
     return 0;
   }
 
-  free(node->key);
-  free(node->value);
-  free(node->evict);
+  if(NULL != node->key) {
+    free(node->key);
+  }
+  if(NULL != node->value) {
+    free(node->value);
+  }
+  if(NULL != node->evict) {
+    free(node->evict);
+  }
   if(node->prev != NULL) {
     node->prev->next = node->next;
   }
@@ -186,20 +192,15 @@ ValData* list_getValue(List* list,
     if(arrcmp(key, lenK, 
       node->key, node->lenKey) == 0) {
       uint32_t lenVal = node->lenVal;
-      char val[lenVal];
-      arrcpy(val, node->value, lenVal);
-      int isBin = node->isBin;      
+      int isBin = node->isBin;
+      char* val = node->value;
+      node->value = NULL;      
       ValData* toReturn =
         allocate_mem(
           sizeof(ValData), listMutex);
-      char* valCpy =
-        allocate_mem(
-          sizeof(char)*lenVal,
-          listMutex);
-        arrcpy(valCpy, val, lenVal);
-        toReturn->isBin = isBin;
-        toReturn->valSize = lenVal;
-        toReturn->value = valCpy;
+      toReturn->isBin = isBin;
+      toReturn->valSize = lenVal;
+      toReturn->value = val;
       return toReturn;
     }
   }

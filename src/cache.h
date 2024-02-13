@@ -62,9 +62,10 @@ int cache_insert(Cache table,
 
 /**
  * Retorna un puntero a una estructura
- * valData, la cual tiene una copia del
+ * valData, la cual tiene el puntero del
  * valor que se asocia con la clave
- * dada. Retorna NULL si la clave buscada
+ * dada, el cual se debe liberar luego
+ * de su uso. Retorna NULL si la clave buscada
  * no se encuentra en la cache.
  * @param cache dónde se quiere encontrar
  * la clave.

@@ -88,6 +88,9 @@ int list_remove_key(List* list,
 /**
  * Busca el valor asociado a la clave pasada
  * por argumentos.
+ * Si se encuentra la clave deja en NULL
+ * el valor asociado a la clave
+ * y es posible que se elimine de la lista.
  * @param list puntero a la lista dónde se
  * quiere buscar la clave.
  * @param key clave que se quiere encontrar.

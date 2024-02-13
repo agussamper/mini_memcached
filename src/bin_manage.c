@@ -35,7 +35,7 @@ void bin_consume(Cache cache , char* buf, int fd) {
 	char comm;
 	int i = 0;
 	comm = buf[i++];
-  char buflen[4];
+	char buflen[4];
 	int lenk;
 	switch (comm)
 	{
@@ -44,7 +44,7 @@ void bin_consume(Cache cache , char* buf, int fd) {
 		memcpy(buflen, buf+i, 4);
 		i += 4;
 		int startKey = i;
-	  lenk = ntohl(*(int*)buflen);
+		lenk = ntohl(*(int*)buflen);
 		i+=lenk;
 		memcpy(buflen,buf+i,4);
 		i+=4;
@@ -82,23 +82,23 @@ void bin_consume(Cache cache , char* buf, int fd) {
 		memcpy(buflen, buf+i, 4);
 		i+=4;
 		lenk = ntohl(*(int*)buflen);
-    ValData* resp = 
+		ValData* resp = 
 			cache_get(cache, buf+i, lenk);
-    if(NULL == resp){
-      char response = ENOTFOUND;
-      write(fd,&response,1);
-    } else {
+		if(NULL == resp){
+		  char response = ENOTFOUND;
+		  write(fd,&response,1);
+		} else {
 			uint32_t bigLen = resp->valSize;		
-    	long len = bigLen + 5;
-    	char* response = allocate_mem(len,NULL);
-    	response[0] = OK;
+			long len = bigLen + 5;
+			char* response = allocate_mem(len,NULL);
+			response[0] = OK;
 			for(int i = 4; i > 0; i--) {
 				response[i] = bigLen & 0xFF;
 				bigLen = bigLen >> 8;
 			}
 			memcpy(response+5,
 				resp->value, resp->valSize);
-    	write(fd,response,len);
+			write(fd,response,len);
 			free(response);
 			free(resp->value);
 			free(resp);
