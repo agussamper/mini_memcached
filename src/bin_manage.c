@@ -88,18 +88,15 @@ void bin_consume(Cache cache , char* buf, int fd) {
 		  char response = ENOTFOUND;
 		  write(fd,&response,1);
 		} else {
-			uint32_t bigLen = resp->valSize;		
-			long len = bigLen + 5;
-			char* response = allocate_mem(len,NULL);
-			response[0] = OK;
+			uint32_t valLen = resp->valSize;
+			char code_len[5];
+			code_len[0] = OK;
 			for(int i = 4; i > 0; i--) {
-				response[i] = bigLen & 0xFF;
-				bigLen = bigLen >> 8;
+				code_len[i] = valLen & 0xFF;
+				valLen = valLen >> 8;
 			}
-			memcpy(response+5,
-				resp->value, resp->valSize);
-			write(fd,response,len);
-			free(response);
+			write(fd, code_len, 5);
+			write(fd, resp->value, resp->valSize);
 			free(resp->value);
 			free(resp);
 		}
@@ -107,16 +104,15 @@ void bin_consume(Cache cache , char* buf, int fd) {
 	case STATS:
 		char* stats = cache_getStats(cache);
 		uint32_t len_stats = strlen(stats);
-		uint32_t len_msj = len_stats+5;
-		char* stats_msj = malloc(len_msj);
-		stats_msj[0] = OK;
+		uint32_t len_stats_m = len_stats;
+		char code_len[5];
+		code_len[0] = OK;
 		for(int i = 4; i > 0; i--) {
-			stats_msj[i] = len_stats & 0xFF;
-			len_stats = len_stats >> 8;
+			code_len[i] = len_stats_m & 0xFF;
+			len_stats_m = len_stats_m >> 8;
 		}
-		strcpy(stats_msj+5,stats);
-		write(fd,stats_msj,len_msj);
-		free(stats_msj);
+		write(fd, code_len, 5);
+		write(fd, stats, len_stats);
 		free(stats);
 		break;
 	default:
