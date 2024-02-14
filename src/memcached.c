@@ -36,7 +36,12 @@ typedef struct epoll_loop {
 void handle_user(int epollfd, User_data* ud) {	
 	while (1) {
 		puts("antes de read");
-		int readRet = user_data_read(ud);
+		int readRet;
+		if(ud->mode == BINARY) {
+			readRet = readBin(ud);
+		} else {
+			//TODO: completar
+		}
 		printf("readRet=%d\n",readRet);
 		if(-1 == readRet) {
 			close(ud->fd);

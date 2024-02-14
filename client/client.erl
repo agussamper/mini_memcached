@@ -165,10 +165,7 @@ recv_resp() ->
 % Envia un paquete y una instrucción al
 % proceso indicado en Pid, espera una respuesta
 % y luego devuelve la misma
-sendPacket(Pid, Ins, Data) ->
-    LengthData = byte_size(Data),
-    Packet = <<LengthData:64/big-unsigned-integer,
-               Data/binary>>,    
+sendPacket(Pid, Ins, Packet) ->    
     case is_process_alive(Pid) of
         true ->
             Pid!{Ins,self(),Packet},
