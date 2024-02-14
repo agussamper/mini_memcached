@@ -1,3 +1,5 @@
+//! @file
+
 #ifndef __BIN_DATA_H__
 #define __BIN_DATA_H__
 
@@ -8,13 +10,16 @@
 #define TEXT 1
 
 typedef struct User_data {
-  int fd;
-  int mode;
-  char* buf;
-  uint64_t bufSize;
-  uint64_t offset;
+  int fd; // File descriptor
+  int mode; // Indica si esta en BINARY O TEXT
+  char* buf; 
+  uint64_t bufSize; // Tamaño del buffer
+  uint64_t offset; // Posición del buffer en
+          // la que estoy leyendo
   uint32_t bytesToRead;
-  uint32_t keySize;
+          // Contienen la longitud de la 
+          // clave o del valor
+  uint32_t keySize; // Longitud de la clave
   char kv; // 2 si para la operacion falta
            // leer clave y valor, 1 si sólo
            // falta la clave y 0 si no falta
@@ -22,19 +27,33 @@ typedef struct User_data {
   char kv_const;
   char reading; // 1 si esta leyendo una clave
                 // o valor, 0 en caso contrario 
-  char readNext;
+  char readNext; //Usado en readBin
 } User_data;
 
+/**
+ * Devuelve un puntero a una estrucura User_data
+ * con el fd dado y el modo, inicializa
+ * ud->buf con NULL.
+ * @param fd File descriptor.
+ * @param mode aqui se debe indicar el modo 
+ * con las constantes BINARY y TEXT.
+ * @return
+ * Devuelve un puntero a una estrucura User_data
+ * inicializada.
+*/
 User_data* user_data_init(int fd, int mode);
 
 /**
- * Reinicia todo menos el mutex
- * y el file descriptor
+ * Libera ud->buf, pone en 0 ud->offset, ud->size
+ * ud->reading, ud->bytesToRead y ud->keySize.
+ * @param ud puntero a estructura a reiniciar
 */
-User_data* user_data_restart(User_data* bd);
+User_data* user_data_restart(User_data* ud);
 
-void user_data_destroy(User_data* bd);
-
-int user_data_read(User_data* bd);
+/**
+ * Libera ud
+ * @param ud estructura a liberar. 
+*/
+void user_data_destroy(User_data* ud);
 
 #endif

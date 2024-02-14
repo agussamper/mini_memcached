@@ -28,9 +28,9 @@
 Cache memcache;
 
 typedef struct epoll_loop {
-	int epollfd;
-	int fd_text;
-	int fd_bin;
+	int epollfd; //File descriptor de epoll
+	int fd_text; //File descriptor del socket de texto
+	int fd_bin;  //File descriotor del socket binario
 } epoll_loop;
 
 void handle_user(int epollfd, User_data* ud) {	
@@ -165,6 +165,9 @@ void* eventloop(void* arg) {
 	}
 }
 
+/**
+ * Inicualiza el epoll y se pone a la escucha
+*/
 void epoll_start(int binsock, int textsock){
 	setnonblocking(binsock);
 	setnonblocking(textsock);
@@ -199,12 +202,6 @@ void epoll_start(int binsock, int textsock){
 	}
 }
 
-void server_start(int textsock, int binsock) {
-	//text fd
-	printf("iniciando servidor\n");	
-	epoll_start(binsock, textsock);	
-}
-
 unsigned str_KRHash(const char *s, uint32_t len) {
   unsigned hashval;
   uint32_t i = 0;
@@ -219,6 +216,6 @@ int memcached_cache_start(int tsock,int bsock){
 	printf("iniciando\n");
 	memcache = cache_create(1000000,str_KRHash);
 	printf("cache creada\n");
-	server_start(tsock, bsock);
+	epoll_start(bsock, tsock);
 	return 0;
 };

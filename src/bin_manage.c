@@ -119,6 +119,7 @@ void bin_consume(Cache cache , char* buf, int fd) {
 }
 
 /**
+ * Función auxiliar
  * setea 2 en ud->kv
  * si tiene que leer clave valor,
  * 1 en ud->kv y si tiene
@@ -148,19 +149,25 @@ int set_kv(User_data* ud) {
   }
 }
 
-void get_bytesToRead(User_data* ud) {
+/**
+ * Función auxiliar
+ * Obtiene la longitud de la clave o del
+ * valor dependiendo del valor de los
+ * parámetros en ud
+*/
+int get_bytesToRead(User_data* ud) {
   char buflen[4];
   if(ud->offset > 1) {
     if(ud->offset >= ud->keySize + 9) {
       ud->bytesToRead = ud->keySize;
       memcpy(buflen, ud->buf+ud->keySize+5, 4);
     } else {
-      int rc = read(ud->fd, buflen, 4); //TODO: usar macro
+      int rc = READ(ud->fd, buflen, 4);
       memcpy(ud->buf+ud->offset, buflen, 4);
       ud->offset += rc;  
     }
   } else {
-    int rc = read(ud->fd, buflen, 4); //TODO: usar macro
+    int rc = READ(ud->fd, buflen, 4);
     memcpy(ud->buf+ud->offset, buflen, 4);
     ud->offset += rc;
   }  
@@ -171,8 +178,15 @@ void get_bytesToRead(User_data* ud) {
     ptr[i] = buflen[j--];
   }
   ud->bytesToRead = aux;
+  return 0;
 }
 
+/**
+ * Función auxiliar
+ * Obtiene cuánto restar al offset para
+ * compararlo con ud->bytesToRead en
+ * readBin 
+*/
 int getRest(User_data* ud) {
   if(ud->kv_const == 2) {
     if(ud->kv == 2) {
@@ -197,6 +211,7 @@ int readBin(User_data* ud) {
     int rc = READ(ud->fd, ud->buf, 1);
     ud->offset+=1;
     ud->readNext = 1;
+    ud->reading = 0;
     set_kv(ud);
     if(ud->kv == 0) {
       return 0;
@@ -206,7 +221,10 @@ int readBin(User_data* ud) {
   int rc = 0;
   while(1) {  
     if(!ud->reading) {
-      get_bytesToRead(ud);
+      int res = get_bytesToRead(ud);
+      if(res != 0) {
+        return res;
+      }
       ud->reading = 1;
       if(ud->kv == 2) {
         ud->keySize = ud->bytesToRead;

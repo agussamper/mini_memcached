@@ -29,6 +29,8 @@ User_data* user_data_restart(User_data* ud) {
   ud->bufSize = 0;
   ud->offset = 0;
   ud->reading = 0;
+  ud->bytesToRead = 0;
+  ud->keySize = 0;
   return ud;
 }
 
