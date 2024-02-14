@@ -232,7 +232,7 @@ int readBin(User_data* ud) {
     }
     if(ud->offset + READSIZE > ud->bufSize) {
       ud->bufSize *= 2;
-      ud->buf = realloc(ud->buf, ud->bufSize); //TODO: crear realloc en allocate_mem
+      ud->buf = realloc_mem(ud->buf, ud->bufSize, NULL);
       assert(ud->buf);
     }
     if(ud->readNext) {

@@ -16,3 +16,15 @@ void* allocate_mem(size_t size, pthread_mutex_t* listMutex) {
   }
   return ptr;
 }
+
+void* realloc_mem(void* ptr,
+    size_t size,
+    pthread_mutex_t* listMutex) {
+  ptr = realloc(ptr, size);
+  int cacheEmpty = cache_empty(memcache);
+  while(!ptr && !cacheEmpty) {   
+    cacheEmpty = cache_evict(memcache, listMutex);
+    ptr = realloc(ptr, size);
+  }
+  return ptr;
+}
