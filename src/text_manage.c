@@ -16,6 +16,12 @@
 		return -1;	\
 	rc; })
 
+
+/*
+Dado un pedido tokenizado lo atiende, respondiendo en el 
+file descriptor fd, operando sobre la Cache cache
+
+*/
 void text_handle(
     Cache cache, int fd,
  		char *toks[3], int lens[3],
@@ -88,7 +94,21 @@ void text_handle(
 	}
 }
 
+/*
+Función llamada cuando se detecta un pedido 
+más grande que lo permitido por el protocolo.
 
+Avanza hasta el proximo pedido.
+
+Si el pedido es mas grande que 2048*MAX_FORWARD
+retorna -1 y el cliente será desconectado.
+
+Si se pudo avanzar, pero el ultimo caracter leido es \n
+retorna 1 para que los pedidos sean prosesados.
+
+Si se pudo avanzar y el último caracter no es \n,
+retorna 0
+*/
 int ebig(char buf[2048], uint64_t* offset, int fd){
 	  int i = 0;
 		int nlen = 0;
