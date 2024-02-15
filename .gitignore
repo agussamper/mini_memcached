@@ -10,3 +10,5 @@ client/borrador
 *.beam
 client/client.c
 client/recibidos
+obj
+bin

@@ -13,7 +13,7 @@
 //! @param[out] lens - arreglo de enteros, contiene la longitud de los tokens
 //! @param[out] ntok - cantidad de tokens
 
-int text_parser(const char *buf, char *toks[3], int *lens );
+int text_parser(const char *buf, char *toks[3], int lens[3]);
 
 
 #endif

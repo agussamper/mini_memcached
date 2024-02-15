@@ -147,6 +147,7 @@ int set_kv(User_data* ud) {
     return -1;
     break;
   }
+  return -1;
 }
 
 /**
@@ -209,7 +210,7 @@ int readBin(User_data* ud) {
       allocate_mem(ud->bufSize, NULL); 
     ud->offset = 0;
     int rc = READ(ud->fd, ud->buf, 1);
-    ud->offset+=1;
+    ud->offset+=rc;
     ud->readNext = 1;
     ud->reading = 0;
     set_kv(ud);

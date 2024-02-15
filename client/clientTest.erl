@@ -27,12 +27,12 @@ get_elem(Key, X) ->
     %string:length(Val),
     client:close(Pid).
 
-spawn_processes(0) ->
-    spawn(clientTest, get_elem, [str, 0]);
-spawn_processes(X) ->
-    spawn(clientTest, get_elem, [str, X]),
-	%sleep(500),
-    spawn_processes(X-1).
+spawn_processes(0, Str) ->
+    spawn(clientTest, get_elem, [Str, 0]);
+spawn_processes(X, Str) ->
+    spawn(clientTest, get_elem, [Str, X]),
+	sleep(1),
+    spawn_processes(X-1, Str).
 
 sleep(Duration) ->
     receive
@@ -47,9 +47,8 @@ start_putval() ->
     StrBin = term_to_binary(Str),
     io:format("~p~n", [byte_size(StrBin)]),
     put(Pid, str, Str),
-    %sleep(5000),
-    client:close(Pid).
-		%spawn_processes(100).
+    client:close(Pid),
+		spawn_processes(500, Str).
 
 start_putkey() ->
 		Pid = client:start(localhost),
@@ -57,7 +56,6 @@ start_putkey() ->
     StrBin = term_to_binary(Str),
     io:format("~p~n", [byte_size(StrBin)]),
     put(Pid, Str, str),
-    %sleep(5000),
     client:close(Pid).
 
 get_val() ->
@@ -66,7 +64,6 @@ get_val() ->
     StrBin = term_to_binary(Str),
     io:format("~p~n", [byte_size(StrBin)]),
     ToPrint = get(Pid, Str),
-    %sleep(5000),
     client:close(Pid),
 		ToPrint.
 

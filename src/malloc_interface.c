@@ -1,6 +1,5 @@
 #include "malloc_interface.h"
 #include "cache.h"
-#include "memcached.h"
 
 #include <stdlib.h>
 #include <stdio.h>

@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -16,9 +18,7 @@
 #include "memcached.h"
 #include "cache.h"
 #include "common.h"
-#include "arr_func.h"
 #include "malloc_interface.h"
-#include "../concurrent_queue/concurrent_queue.h"
 #include "text_manage.h"
 #include "bin_manage.h"
 #include "user_data.h"
@@ -140,7 +140,6 @@ void* eventloop(void* arg) {
 		num_events = 
 			epoll_wait(eloop->epollfd,
 				events, MAX_EVENTS, -1);
-		printf("PASO WAIT, hilo=%d\n numevents=%d\n", syscall(__NR_gettid), num_events);
 		if (num_events == -1) {
 			perror("binepoll_wait");
 			exit(EXIT_FAILURE);
@@ -172,7 +171,6 @@ void epoll_start(int binsock, int textsock){
 	setnonblocking(binsock);
 	setnonblocking(textsock);
 	int epoll_fd = epoll_create1(0);
-	int bcsock;
   struct epoll_event epollevent;
   epollevent.events = EPOLLIN | EPOLLET;
 	

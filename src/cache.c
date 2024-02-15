@@ -55,14 +55,14 @@ Cache cache_create(
 
 void cache_destroy(Cache cache) {
   List* listArr = cache->listArr;
-  for(int i = 0; i < cache->size; i++) {
+  for(unsigned i = 0; i < cache->size; i++) {
     list_destroy(listArr[i]); 
   }
   free(cache->listArr);
   evict_destroy(cache->evict);
 
   pthread_mutex_t* mutex_arr = cache->mutex_arr;
-  for(int i = 0; i < cache->size_mutex_arr; i++) {
+  for(unsigned i = 0; i < cache->size_mutex_arr; i++) {
     pthread_mutex_destroy(mutex_arr+i);
   }
   free(mutex_arr);
