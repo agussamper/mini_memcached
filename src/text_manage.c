@@ -6,6 +6,8 @@
 #include "text_manage.h"
 #include "parser.h"
 
+#define MAX_FORWARD 11
+
 #define READ(fd, buf, n) ({						\
 	int rc = read(fd, buf, n);				\
 	if (rc < 0)	\
@@ -86,57 +88,33 @@ void text_handle(
 	}
 }
 
-/* 0: todo ok, continua. -1 errores */
-/*int text_consume(Cache cache, int fd, char buf[], int *offset) { 
-	while (1) {
-		int rem = 1 - *offset;
-		if(rem < 0) return -1;
 
-		if (rem == 0)
-			return 0;
-		printf("REM: %d\n",rem);
-		int nread = READ(fd, buf + *offset, rem);
-		printf("a\n");
-		//log(3, "Read %i bytes from fd %i", nread, fd);
-		*offset += nread;
-		char *p, *p0 = buf;
-		int nlen = *offset;
-
-		while ((p = memchr(p0, '\n', nlen)) != NULL) {
-			int len = p - p0;
-			*p++ = 0;
-            //log(3, "full command: <%s>", p0);
-			char *toks[3]= {NULL};
-			int lens[3] = {0};
-			int ntok;
-			ntok = text_parser(buf,toks,lens);
-
-			text_handle(cache, fd,
-        toks,lens,ntok);
-			nlen -= len + 1;
-			p0 = p;
+int ebig(char buf[2048], uint64_t* offset, int fd){
+	  int i = 0;
+		int nlen = 0;
+		char* p = buf;
+		int nread = READ(fd,buf,2048);
+		while(i<MAX_FORWARD && (p = memchr(buf, '\n', nread)) == NULL){
+			i++;
+			nread = READ(fd,buf,2048);
 		}
-
-		if (p0 != buf) {
-			memmove(buf, p0, nlen);
-			*offset = nlen;
-		} else if(*offset == 2048){
-			write(fd,"EBIG\n",5);
+		if(i == MAX_FORWARD && p == NULL){
 			return -1;
+		}else{
+			p++;
+			nlen = p - buf;
+			*offset = nread - nlen;
+			memmove(buf, p, *offset);
+			if(buf[nread-1] == '\n'){
+					return 1;
+			}
+			return 0;
 		}
-	}
-	return 0;
 }
-*/
+
 
 int text_consume(Cache cache, int fd, char buf[2048], uint64_t* offset){
-	while(1){
-		if(*offset == 2048){
-			write(fd,"EBIG\n",5);
-		//TODO: PREPARAR PARA LEER EL PROXIMO PEDIDO
-		}
 		int nread = READ(fd, buf + *offset, 2048-*offset);
-    if(buf[0] == 0) break;
 		*offset += nread;
 		char *p, *p0 = buf;
 		uint64_t nlen = *offset;
@@ -161,6 +139,13 @@ int text_consume(Cache cache, int fd, char buf[2048], uint64_t* offset){
 			memmove(buf, p0, nlen);
 			*offset = nlen;
 			}
-	}
+		if(*offset == 2048){
+			write(fd,"EBIG\n",5);
+			*offset = 0;
+			int fwd = ebig(buf,offset,fd);
+			if(fwd == 1){
+				return text_consume(cache,fd,buf,offset);
+			}else return fwd;
+		}
   return 0;
 }
