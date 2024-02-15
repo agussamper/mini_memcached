@@ -1,3 +1,5 @@
+//! @file
+
 #ifndef __TEXT_MANAGE_H__
 #define __TEXT_MANAGE_H__
 
