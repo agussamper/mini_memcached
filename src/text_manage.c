@@ -18,9 +18,9 @@
 
 
 /*
-Dado un pedido tokenizado lo atiende, respondiendo en el 
-file descriptor fd, operando sobre la Cache cache
-
+ * Dado un pedido tokenizado lo atiende,
+ * respondiendo en el file descriptor fd,
+ * operando sobre la Cache cache
 */
 void text_handle(
     Cache cache, int fd,
@@ -35,7 +35,7 @@ void text_handle(
 			return;
 		} 
 		char val[lens[2]+1]; 
-		sprintf(val,"%s\0",toks[2]);
+		sprintf(val,"%s",toks[2]);
 		cache_insert(cache,
 			toks[1], lens[1], 
 			val , lens[2] + 1, 0);
@@ -58,7 +58,6 @@ void text_handle(
 			return;
 		}
 		char res[2045];
-		//printf("get value: %s \n len value %ld \n %d \n",val->value,val->valSize,strlen(val->value));
 		sprintf(res,"OK %s\n",val->value);
 		write(fd,res,val->valSize+4);
 		free(val->value);
@@ -94,27 +93,28 @@ void text_handle(
 	}
 }
 
-/*
-Función llamada cuando se detecta un pedido 
-más grande que lo permitido por el protocolo.
-
-Avanza hasta el proximo pedido.
-
-Si el pedido es mas grande que 2048*MAX_FORWARD
-retorna -1 y el cliente será desconectado.
-
-Si se pudo avanzar, pero el ultimo caracter leido es \n
-retorna 1 para que los pedidos sean prosesados.
-
-Si se pudo avanzar y el último caracter no es \n,
-retorna 0
+/**
+ * Función llamada cuando se detecta un pedido 
+ * más grande que lo permitido por el protocolo.
+ * 
+ * Avanza hasta el proximo pedido.
+ * 
+ * Si el pedido es mas grande que 2048*MAX_FORWARD
+ * retorna -1 y el cliente será desconectado.
+ * 
+ * Si se pudo avanzar, pero el ultimo caracter leido es \n
+ * retorna 1 para que los pedidos sean prosesados.
+ * 
+ * Si se pudo avanzar y el último caracter no es \n,
+ * retorna 0
 */
 int ebig(char buf[2048], uint64_t* offset, int fd){
 	int i = 0;
 	int nlen = 0;
 	char* p = buf;
 	int nread = READ(fd,buf,2048);
-	while(i<MAX_FORWARD && (p = memchr(buf, '\n', nread)) == NULL){
+	while(i < MAX_FORWARD &&
+	 (p = memchr(buf, '\n', nread)) == NULL){
 		i++;
 		nread = READ(fd,buf,2048);
 	}

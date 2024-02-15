@@ -37,7 +37,7 @@ void handle_user(int epollfd, User_data* ud) {
 	if(ud->mode == BINARY){
 		while (1) {
 			puts("antes de read");
-			int readRet = user_data_read(ud);
+			int readRet = readBin(ud);
 			printf("readRet=%d\n",readRet);
 			if(-1 == readRet) {
 				close(ud->fd);

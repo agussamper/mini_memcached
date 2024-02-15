@@ -5,8 +5,10 @@
 #include "cache.h"
 
 /**
- * Lee hasta llenar el buffer, atiende todos los pedidos encontrados, deja en el 
- * buffer los caracteres correspondientes a un pedido incompleto que será
+ * Lee hasta llenar el buffer, atiende
+ * todos los pedidos encontrados, deja en el 
+ * buffer los caracteres correspondientes
+ * a un pedido incompleto que será
  * atendido en alguna proxima llamada, 
  * en offset la longitud de este pedido incompleto.
  * 
@@ -14,11 +16,15 @@
  * debemos cerrar la conexión retornamos -1.
  * En caso contrario retornamos 0.
  * 
- * @param cache sobre la cual se realizan peticiones
- * @param fd file descriptor con el cual nos comunicamos con el fliente
+ * @param cache sobre la cual se realizan peticiones.
+ * @param fd file descriptor con el cual nos
+ * comunicamos con el cliente.
  * @param buf buffer donde guardamos lo leido
- * @param offset puntero en donde guardamos hasta donde leimos en el buffer
- * @return 0: todo ok  -1: errores criticos o desconección del cliente
+ * @param offset puntero en donde guardamos hasta
+ * donde leimos en el buffer.
+ * @return 
+ * 0: todo ok.
+ * -1: errores criticos o desconección del cliente.
  */
 int text_consume(Cache cache,
   int fd, char buf[2048], u_int64_t* offset);
