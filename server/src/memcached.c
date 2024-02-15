@@ -33,20 +33,26 @@ typedef struct epoll_loop {
 	int fd_bin;  //File descriotor del socket binario
 } epoll_loop;
 
+/**
+ * Función auxiliar de handle_user, esta
+ * función se llama cuando el usuario está
+ * en modo binario
+ * @param epollfd file desctiptor de epoll.
+ * @param ud puntero a estructura con
+ * datos del usuario.
+*/
 void handle_binUser(int epollfd, User_data* ud) {
 	while (1) {
-		puts("antes de read");
 		int readRet = readBin(ud);
-		printf("readRet=%d\n",readRet);
 		if(-1 == readRet) {
 			close(ud->fd);
 			epoll_ctl(ud->fd, EPOLL_CTL_DEL,
 				ud->fd, NULL);
-			user_data_destroy(ud);		
+			user_data_destroy(ud);
+			puts("usuario desconectado");		
 			return;
 		}
 		if(0 == readRet) { 
-			puts("bin");
 			bin_consume(memcache, 
 				ud->buf, ud->fd);
 			user_data_restart(ud);
@@ -71,6 +77,14 @@ void handle_binUser(int epollfd, User_data* ud) {
 	}
 }
 
+/**
+ * Función auxiliar de handle_user, esta
+ * función se llama cuando el usuario está
+ * en modo texto
+ * @param epollfd file desctiptor de epoll.
+ * @param ud puntero a estructura con
+ * datos del usuario.
+*/
 void handle_textUser(int epollfd, User_data* ud) {
 	if(ud->buf == NULL){
 		ud->buf = allocate_mem(2048,NULL);
@@ -83,7 +97,8 @@ void handle_textUser(int epollfd, User_data* ud) {
 			close(ud->fd);
 			epoll_ctl(ud->fd, EPOLL_CTL_DEL,
 			ud->fd, NULL);
-			user_data_destroy(ud);		
+			user_data_destroy(ud);
+			puts("usuario desconectado");		
 			return;
 		} else {
 			struct epoll_event event;
@@ -96,6 +111,23 @@ void handle_textUser(int epollfd, User_data* ud) {
 	}
 }
 
+/**
+ * Dependiendo de si el usuario está en modo
+ * texto o binario llama a handle_textUser
+ * o handle_binUser, las cuales leen lo que
+ * el usuario envío al servidor y les
+ * contestan. Si no se pudo leer todo el
+ * paquete porque es demasiado grande para
+ * que entre en el buffer, guarda el estado
+ * de lectura en ud para seguir leyendo desde
+ * donde quedo, además modifica los file
+ * descriptors para que vuelvan a ser tenido en
+ * cuenta por epoll (ya que están en modo
+ * EPOLLONESHOT).
+ * @param epollfd file desctiptor de epoll.
+ * @param ud puntero a estructura con
+ * datos del usuario.
+*/
 void handle_user(int epollfd, User_data* ud) {
 	if(ud->mode == BINARY){
 		handle_binUser(epollfd, ud);
@@ -108,6 +140,12 @@ void handle_user(int epollfd, User_data* ud) {
 	}
 }
 
+/**
+ * Dado un file descriptor lo configurar
+ * como no bloqueante.
+ * @param sockfd Socket el cual se quiere
+ * configurar como no bloqueante.
+*/
 void setnonblocking(int sockfd) {
 	// Configurar el socket para que sea no bloqueante
   int flags = fcntl(sockfd, F_GETFL, 0);
@@ -121,12 +159,20 @@ void setnonblocking(int sockfd) {
   }
 }
 
+/**
+ * Acepta usuarios que se quieren conectar
+ * al modo texto o binario, agregandolos en
+ * epoll con eventos EPOLLIN | EPOLLONESHOT
+ * @param eloop estructura con file desctiptors.
+ * @param mode modo en el que se quiere conectar
+ * se debe iniciar con las variables TEXT o 
+ * BINARY (definidas en user_data.h).
+*/
 void user_accept(epoll_loop* eloop, int mode) {
 	struct epoll_event epollevent;
 	int acceptret;
 	while(1) {		
 		if(mode == BINARY) {
-			puts("antes de accept4");
 			acceptret = accept4(eloop->fd_bin,
 			 NULL, NULL, O_NONBLOCK);
 		} else if(mode == TEXT) {
@@ -154,6 +200,13 @@ void user_accept(epoll_loop* eloop, int mode) {
 	}
 }
 
+/**
+ * Esta función tiene un bucle infinito
+ * en el cual se atienden las peticiones
+ * de los clientes.
+ * @param arg Se espera un puntero a una
+ * estructura de tipo epoll_loop.
+*/
 void* eventloop(void* arg) {
 	epoll_loop* eloop = (epoll_loop*)arg;
 	struct epoll_event events[MAX_EVENTS];
@@ -187,7 +240,12 @@ void* eventloop(void* arg) {
 }
 
 /**
- * Inicualiza el epoll y se pone a la escucha
+ * Inicualiza el epoll, agregando en el mismo
+ * binsock y textsock en modo edge triggering
+ * y se pone a la escucha de eventos en los
+ * sockets agregados
+ * @param tsock Socket de escucha para modo texto
+ * @param bsock Socket de escucha para modo binario
 */
 void epoll_start(int binsock, int textsock){
 	setnonblocking(binsock);
@@ -232,10 +290,9 @@ unsigned str_KRHash(const char *s, uint32_t len) {
   return hashval;
 }
 
-int memcached_cache_start(int tsock,int bsock){
+void memcached_start(int tsock,int bsock){
 	printf("iniciando\n");
 	memcache = cache_create(1000000,str_KRHash);
 	printf("cache creada\n");
 	epoll_start(bsock, tsock);
-	return 0;
 };

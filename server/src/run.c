@@ -12,6 +12,15 @@
 #include "memcached.h"
 #include "common.h"
 
+/**
+ * Crea un socket de escucha en el puerto
+ * indicado por parámetro
+ * @param puerto puerto en el cual se quiere
+ * crear el socket de escucha.
+ * @return
+ * retorna el file descriptor del socket
+ * creado.
+*/
 int mk_lsock(in_port_t puerto)
 {
 	struct sockaddr_in sa;
@@ -56,5 +65,5 @@ int main()
 	tSock = mk_lsock(8888);
   bSock = mk_lsock(8889);
 	setuid(1000);
-  memcached_cache_start(tSock,bSock);
+  memcached_start(tSock,bSock);
 }

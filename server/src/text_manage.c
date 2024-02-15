@@ -148,10 +148,6 @@ int text_consume(Cache cache, int fd,
 		int lens[3] = {0};
 		int ntok;
 		ntok = text_parser(buf,toks,lens);
-		for(int i =0; i < ntok;i++) { //TODO: borrar
-			printf("tok%d : %s len : %d\n",
-				i,toks[i],lens[i]);
-		}
 		text_handle(cache, fd,
       toks,lens,ntok);
 		nlen -= len + 1;

@@ -47,8 +47,8 @@ start_putval() ->
     StrBin = term_to_binary(Str),
     io:format("~p~n", [byte_size(StrBin)]),
     put(Pid, str, Str),
-    client:close(Pid),
-		spawn_processes(500, Str).
+    client:close(Pid).
+	%spawn_processes(500, Str).
 
 start_putkey() ->
 		Pid = client:start(localhost),

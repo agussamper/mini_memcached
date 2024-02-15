@@ -8,9 +8,9 @@
 /**
  * Inicia la memcached, espera consultas y las
  * responde
- * @param tsock
- * @param bsock
+ * @param tsock Socket de escucha para modo texto
+ * @param bsock Socket de escucha para modo binario
 */
-int memcached_cache_start(int tsock,int bsock);
+void memcached_start(int tsock,int bsock);
 
 #endif
