@@ -167,6 +167,7 @@ ValData* cache_get(Cache cache, char* key,
     evict_update(cache->evict, *list);
     break;
   }
+  
   pthread_mutex_unlock(mutex);
   return valData;
 }
