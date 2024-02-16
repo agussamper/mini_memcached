@@ -6,7 +6,6 @@
 #include <netinet/ip.h>
 #include <stdio.h>
 #include <stdlib.h>
-//#include "log.h"
 
 enum code {
 	PUT = 11,
@@ -28,7 +27,5 @@ void quit(char *s);
 
 #define STATIC_ASSERT(p)			\
 	int _ass_ ## __LINE__ [(!!(p)) - 1];
-
-//const char * error_str(enum code e);
 
 #endif
