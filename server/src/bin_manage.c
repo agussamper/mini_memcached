@@ -35,7 +35,6 @@ void bin_consume(Cache cache , char* buf, int fd) {
 	switch (comm)
 	{
 	case PUT:
-		puts("ENTRO A PUT");
 		memcpy(buflen, buf+i, 4);
 		i += 4;
 		int startKey = i;
@@ -49,11 +48,10 @@ void bin_consume(Cache cache , char* buf, int fd) {
 				buf+startKey, lenk,
 				buf+startVal, lenv, 1)){
 			char response = OK;
-			puts("ESCRIBO RESPUESTA");
 			write(fd,&response,1);
 		}
 		else{
-			char response = EINVALID;
+			char response = EBIG;
 			write(fd,&response,1);
 			printf("insert error\n");	
 		}
@@ -97,7 +95,6 @@ void bin_consume(Cache cache , char* buf, int fd) {
 		}
 		break;
 	case STATS:
-		puts("EN STATS");
 		char* stats = cache_getStats(cache);
 		uint32_t len_stats = strlen(stats);
 		uint32_t len_stats_m = len_stats;

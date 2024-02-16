@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <signal.h>
-
+#include <sys/resource.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -54,6 +54,18 @@ int mk_lsock(in_port_t puerto)
 	return lsock;
 }
 
+/**
+ * Setea el límite de memoria del programa
+ * @param bytes Cantidad máxima de bytes que
+ * puede usar el programa
+*/
+void setmemlimit(uint64_t bytes) {
+  struct rlimit memlimit;
+  memlimit.rlim_cur = bytes;
+  memlimit.rlim_max = bytes;
+  setrlimit(RLIMIT_AS, &memlimit);
+}
+
 int main()
 {
 	uid_t uid = getuid();
@@ -61,6 +73,9 @@ int main()
     puts("SE REQUIEREN PERMISOS DE SUPERUSUARIO");
 		return 0;
   }
+	uint64_t maxBytes = 1;
+	maxBytes = maxBytes << 32; //4GB
+	setmemlimit(maxBytes);
 	int tSock, bSock;
 	tSock = mk_lsock(888);
   bSock = mk_lsock(889);
