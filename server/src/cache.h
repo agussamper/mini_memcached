@@ -18,15 +18,10 @@ typedef struct _Cache *Cache;
  * @param size cantidad de slots que tendrá
  * la caché (no es la cantidad máxima de 
  * elementos que se pueden guardar).
- * @param hashFuncion función hash que
- * utiizará la caché para guardar sus 
- * elementos.
  * @return
  * Devuelve una cache inicializada.
 */
-Cache cache_create(
-    unsigned size,
-    HashFunction hash);
+Cache cache_create(unsigned size);
 
 /**
  * Destruye la cache pasada por argumentos.

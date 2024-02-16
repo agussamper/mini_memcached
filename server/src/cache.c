@@ -15,14 +15,10 @@ struct _Cache {
   Evict evict;
   pthread_mutex_t* mutex_arr;
   unsigned size_mutex_arr; 
-  HashFunction hash;
   Stats stats;
 };
 
-Cache cache_create(
-    unsigned size,
-    HashFunction hash) {
-
+Cache cache_create(unsigned size) {
   Cache cache = malloc(sizeof(struct _Cache));
   assert(cache);
   cache->listArr = malloc(sizeof(List)*size);
@@ -46,11 +42,19 @@ Cache cache_create(
   }
 
   cache->size = size;
-  cache->hash = hash;
-
   cache->stats = stats_init();
 
   return cache;
+}
+
+unsigned hash(const char *s, uint32_t len) {
+  unsigned hashval;
+  uint32_t i = 0;
+  for (hashval = 0;i<len; ++s) {
+    hashval = *s + 31 * hashval;
+	i++;
+  }
+  return hashval;
 }
 
 void cache_destroy(Cache cache) {
@@ -79,7 +83,7 @@ int cache_size(Cache cache) {
  * correspondiente a key.
 */
 unsigned get_idx(Cache cache, char* key, uint32_t len) {
-  return cache->hash(key,len) % cache->size;
+  return hash(key,len) % cache->size;
 }
 
 /**

@@ -280,19 +280,9 @@ void epoll_start(int binsock, int textsock){
 	}
 }
 
-unsigned str_KRHash(const char *s, uint32_t len) {
-  unsigned hashval;
-  uint32_t i = 0;
-  for (hashval = 0;i<len; ++s) {
-    hashval = *s + 31 * hashval;
-	i++;
-  }
-  return hashval;
-}
-
 void memcached_start(int tsock,int bsock){
 	printf("iniciando\n");
-	memcache = cache_create(1000000,str_KRHash);
+	memcache = cache_create(1000000);
 	printf("cache creada\n");
 	epoll_start(bsock, tsock);
 };
