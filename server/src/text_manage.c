@@ -27,12 +27,12 @@ void text_handle(
  		char *toks[3], int lens[3],
 		int ntok){
 	if(ntok ==-1){
-				char response[20];
-				int len = sprintf(response,
-					"EINVAL\n");
-				write(fd,response,len);
-				return;
-			} 
+		char response[20];
+		int len = sprintf(response,
+			"EINVAL\n");
+		write(fd,response,len);
+		return;
+	} 
 	if(!strcmp(toks[0],"PUT")){
 		if(ntok !=3){
 			printf("ntok !=3\n");
@@ -96,8 +96,8 @@ void text_handle(
 		free(stats);
 		return;
 	}else{
-			write(fd,"EINVAL\n",7);
-			return;
+		write(fd,"EINVAL\n",7);
+		return;
 	}
 }
 
