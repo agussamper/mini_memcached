@@ -26,11 +26,19 @@ void text_handle(
     Cache cache, int fd,
  		char *toks[3], int lens[3],
 		int ntok){
+	if(ntok ==-1){
+				char response[20];
+				int len = sprintf(response,
+					"EINVAL\n");
+				write(fd,response,len);
+				return;
+			} 
 	if(!strcmp(toks[0],"PUT")){
 		if(ntok !=3){
+			printf("ntok !=3\n");
 			char response[20];
 			int len = sprintf(response,
-				"EINVAL NTOK %d\n",ntok);
+				"EINVAL\n");
 			write(fd,response,len);
 			return;
 		} 
@@ -148,6 +156,7 @@ int text_consume(Cache cache, int fd,
 		int lens[3] = {0};
 		int ntok;
 		ntok = text_parser(buf,toks,lens);
+		printf("PEDIDO PARSEADO\n");
 		text_handle(cache, fd,
       toks,lens,ntok);
 		nlen -= len + 1;

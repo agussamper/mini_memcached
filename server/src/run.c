@@ -56,9 +56,8 @@ int mk_lsock(in_port_t puerto)
 
 int main()
 {
-	//TODO: descomentar lo de abajo
-  //uid_t uid = getuid();
-  //if(uid){
+//	uid_t uid = getuid();
+ // if(uid){
   //    quit("SE REQUIEREN PERMISOS DE SUPERUSUARIO");
   //}
 	int tSock, bSock;

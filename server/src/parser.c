@@ -16,8 +16,9 @@ int text_parser(const char *buf, char *toks[3], int lens[3])
 		char *p = (char*)buf;
 		ntok = 0;
 		toks[ntok++] = p;
-		while (ntok < 10 && (p = strchrnul(p, ' ')) && *p) {
+		while (ntok < 4 && (p = strchrnul(p, ' ')) && *p) {
 			/* Longitud token anterior */
+			if(ntok == 3) return -1;
 			lens[ntok-1] = p - toks[ntok-1];
 			*p++ = 0;
 			/* Comienzo nueva token */
