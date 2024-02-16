@@ -47,6 +47,13 @@ Cache cache_create(unsigned size) {
   return cache;
 }
 
+/**
+ * Dado una cadena obtiene su hash.
+ * @param s cadena que se quiere hashear.
+ * @param len longitud de la cadena.
+ * @return
+ * Retorna el valor hash de la cadena.
+*/
 unsigned hash(const char *s, uint32_t len) {
   unsigned hashval;
   uint32_t i = 0;
