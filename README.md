@@ -60,6 +60,10 @@ La función start devolverá un process ID (PID), el cual debe ser pasado a las 
 ```bash
  > client:stats(Pid).
 ```
+-close/1 se utiliza para cerrar la conexión con el servidor. El primer argumento es el PID devuelto por start.
+```bash
+ > client:close(Pid).
+```
 ## Documentación
 
 La documentación de la memcached se encuentra en la carpeta server y se puede generar con el comando doxygen, una vez ejecutado el comando se crearán dos carpetas llamadas html y latex, se puede ver la documentación en cualquier navegador abriendo el archivo index.html que se encuentra en la carpeta html. Además se encuentra el informe del proyecto en la carpeta informe.
