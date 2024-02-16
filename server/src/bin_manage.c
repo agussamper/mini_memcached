@@ -109,6 +109,7 @@ void bin_consume(Cache cache , char* buf, int fd) {
 		free(stats);
 		break;
 	default:
+    puts("COMM DESCONOCIDO");
 		char c = EINVALID;
 		write(fd,&c,1);
 		break;
@@ -123,10 +124,10 @@ void bin_consume(Cache cache , char* buf, int fd) {
  * que leer sólo la clave y 0 ud->kv
  * y si no tiene que
  * dependiendo del código pasado por
- * argumentos. setea -1 
- * si el código pasado no es válido.
+ * argumentos. setea -1 si el código
+ * pasado no es válido.
 */
-int set_kv(User_data* ud) {
+void set_kv(User_data* ud) {
   switch (ud->buf[0]) {
   case PUT:
     ud->kv = 2;
@@ -141,10 +142,9 @@ int set_kv(User_data* ud) {
     ud->kv = 0;
     break;
   default:
-    return -1;
+    ud->kv = -1;
     break;
   }
-  return -1;
 }
 
 /**
@@ -210,8 +210,8 @@ int readBin(User_data* ud) {
     ud->offset+=rc;
     ud->readNext = 1;
     ud->reading = 0;
-    set_kv(ud);
-    if(ud->kv == 0) {
+    set_kv(ud);    
+    if(ud->kv == 0 || ud->kv == -1) {
       return 0;
     }
     ud->kv_const = ud->kv;
