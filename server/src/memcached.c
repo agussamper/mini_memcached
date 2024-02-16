@@ -92,7 +92,7 @@ void handle_textUser(int epollfd, User_data* ud) {
 	}
 	while(1){
 		int res = text_consume(memcache,
-			ud->fd,ud->buf,&ud->offset);
+			ud);
 		if(res == -1) {
 			close(ud->fd);
 			epoll_ctl(ud->fd, EPOLL_CTL_DEL,

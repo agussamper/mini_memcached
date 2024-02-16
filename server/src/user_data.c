@@ -18,6 +18,7 @@ User_data* user_data_init(int fd, int mode) {
   ud->bufSize = 0;
   ud->offset = 0;
   ud->reading = 0;
+  ud->fwd = 0;
   return ud;
 }
 

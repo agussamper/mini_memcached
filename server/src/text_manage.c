@@ -116,17 +116,20 @@ void text_handle(
  * Si se pudo avanzar y el último caracter no es \n,
  * retorna 0
 */
-int ebig(char buf[2048], uint64_t* offset, int fd){
-	int i = 0;
+int ebig(User_data* ud){
+	ud->fwd++;
+	int fd = ud->fd;
+	char* buf = ud->buf;
+	int* offset = &(ud->offset);
 	int nlen = 0;
 	char* p = buf;
 	int nread = READ(fd,buf,2048);
-	while(i < MAX_FORWARD &&
+	while(ud->fwd < MAX_FORWARD &&
 	 (p = memchr(buf, '\n', nread)) == NULL){
-		i++;
+		ud->fwd++;
 		nread = READ(fd,buf,2048);
 	}
-	if(i == MAX_FORWARD && p == NULL){
+	if(ud->fwd == MAX_FORWARD && (p == NULL || p == buf)){
 		return -1;
 	}else{
 		p++;
@@ -141,8 +144,11 @@ int ebig(char buf[2048], uint64_t* offset, int fd){
 }
 
 
-int text_consume(Cache cache, int fd,
-		char buf[2048], uint64_t* offset){
+int text_consume(Cache cache, User_data* ud){
+	int fd = ud->fd;
+	char* buf = ud->buf;
+	int* offset = &(ud->offset);
+
 	int nread = READ(fd, 
 		buf + *offset, 2048-*offset);
 	*offset += nread;
@@ -169,10 +175,12 @@ int text_consume(Cache cache, int fd,
 	if(*offset == 2048){
 		write(fd,"EBIG\n",5);
 		*offset = 0;
-		int fwd = ebig(buf,offset,fd);
+		int fwd = ebig(ud);
 		if(fwd == 1){
-			return text_consume(cache,fd,buf,offset);
+				return text_consume(cache,ud);
 		} else return fwd;
+	
 	}
+
   return 0;
 }

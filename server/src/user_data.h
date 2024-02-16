@@ -12,7 +12,8 @@
 typedef struct User_data {
   int fd; // File descriptor
   int mode; // Indica si esta en BINARY O TEXT
-  char* buf; 
+  char* buf;
+  char fwd; // iterador para limitar la cantidad de forwards por ebig 
   uint64_t bufSize; // Tamaño del buffer
   uint64_t offset; // Posición del buffer en
           // la que estoy leyendo
