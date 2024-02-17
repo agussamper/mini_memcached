@@ -19,6 +19,8 @@ User_data* user_data_init(int fd, int mode) {
     User_dataBin* udBin =
       allocate_mem(sizeof(User_dataBin), NULL);
     ud->udBin = udBin;
+  } else {
+    ud->udBin = NULL;
   }
   return ud;
 }
