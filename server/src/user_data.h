@@ -27,8 +27,10 @@ typedef struct User_data {
   char kv_const;
   char reading; // 1 si esta leyendo una clave
                 // o valor, 0 en caso contrario 
-  char readNext; //Usado en readBin // usado en text_manage para 
-  //representar el maximo de EBIG permitidos
+  char readNext; // Usado en readBin para decidir si hay
+                 // que leer la entrada
+                 // usado en text_manage para representar
+                 // el maximo de EBIG permitidos
 } User_data;
 
 /**

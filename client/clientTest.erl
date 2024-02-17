@@ -28,9 +28,9 @@ get_elem(Key, X) ->
     client:close(Pid).
 
 spawn_processes(0, Str) ->
-    spawn(clientTest, get_elem, [Str, 0]);
+    spawn(clientTest, get_elem, [str, 0]);
 spawn_processes(X, Str) ->
-    spawn(clientTest, get_elem, [Str, X]),
+    spawn(clientTest, get_elem, [str, X]),
 	sleep(1),
     spawn_processes(X-1, Str).
 
@@ -47,8 +47,8 @@ start_putval() ->
     StrBin = term_to_binary(Str),
     io:format("~p~n", [byte_size(StrBin)]),
     put(Pid, str, Str),
-    client:close(Pid).
-	%spawn_processes(500, Str).
+    client:close(Pid),
+		spawn_processes(500, Str).
 
 start_putkey() ->
 		Pid = client:start(localhost),
