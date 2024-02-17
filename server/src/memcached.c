@@ -91,7 +91,6 @@ void handle_textUser(int epollfd, User_data* ud) {
 	if(ud->buf == NULL){
 		ud->readNext = 0;
 		ud->buf = allocate_mem(2048,NULL);
-		ud->bufSize = 2048;
 	}
 	while(1){
 		int res = text_consume(memcache,
@@ -132,15 +131,10 @@ void handle_textUser(int epollfd, User_data* ud) {
  * datos del usuario.
 */
 void handle_user(int epollfd, User_data* ud) {
-	if(ud->mode == BINARY){
+	if(ud->udBin != NULL)
 		handle_binUser(epollfd, ud);
-	}
-	else if(ud->mode == TEXT){
+	else
 		handle_textUser(epollfd, ud);
-	} else {
-		perror("handle_user: invalid mode");
-		exit(EXIT_FAILURE);
-	}
 }
 
 /**

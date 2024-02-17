@@ -9,13 +9,8 @@
 #define BINARY 0
 #define TEXT 1
 
-typedef struct User_data {
-  int fd; // File descriptor
-  int mode; // Indica si esta en BINARY O TEXT
-  char* buf;
+typedef struct User_dataBin {
   uint64_t bufSize; // Tamaño del buffer
-  uint64_t offset; // Posición del buffer en
-          // la que estoy leyendo
   uint32_t bytesToRead;
           // Contienen la longitud de la 
           // clave o del valor
@@ -24,9 +19,23 @@ typedef struct User_data {
            // leer clave y valor, 1 si sólo
            // falta la clave y 0 si no falta
            // nada
-  char kv_const;
+  char kv_const; 
+          // Debe tener el mismo valor que en
+          // la primera asignación a kv y debe
+          // ser constante 
   char reading; // 1 si esta leyendo una clave
                 // o valor, 0 en caso contrario 
+} User_dataBin;
+
+typedef struct User_data {  
+  User_dataBin* udBin; // Estructura necesaria
+    // para usuario en modo binario, además
+    // si su valor es NULL indica que está en
+    // modo texto 
+  char* buf;  
+  uint64_t offset; // Posición del buffer en
+          // la que estoy leyendo
+  int fd; // File descriptor
   char readNext; // Usado en readBin para decidir si hay
                  // que leer la entrada
                  // usado en text_manage para representar
@@ -47,8 +56,10 @@ typedef struct User_data {
 User_data* user_data_init(int fd, int mode);
 
 /**
- * Libera ud->buf, pone en 0 ud->offset, ud->size
- * ud->reading, ud->bytesToRead y ud->keySize.
+ * Libera ud->buf, pone en 0 ud->offset, 
+ * ud->udBin->size, ud->udBin->reading,
+ * ud->udBin->bytesToRead y 
+ * ud->udBin->keySize.
  * @param ud puntero a estructura a reiniciar
 */
 User_data* user_data_restart(User_data* ud);

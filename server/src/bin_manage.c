@@ -118,10 +118,10 @@ void bin_consume(Cache cache , char* buf, int fd) {
 
 /**
  * Función auxiliar
- * setea 2 en ud->kv
+ * setea 2 en ud->udBin->kv
  * si tiene que leer clave valor,
- * 1 en ud->kv y si tiene
- * que leer sólo la clave y 0 ud->kv
+ * 1 en ud->udBin->kv y si tiene
+ * que leer sólo la clave y 0 ud->udBin->kv
  * y si no tiene que
  * dependiendo del código pasado por
  * argumentos. setea -1 si el código
@@ -130,19 +130,19 @@ void bin_consume(Cache cache , char* buf, int fd) {
 void set_kv(User_data* ud) {
   switch (ud->buf[0]) {
   case PUT:
-    ud->kv = 2;
+    ud->udBin->kv = 2;
     break;
   case DEL:
-    ud->kv = 1;
+    ud->udBin->kv = 1;
     break;
   case GET:
-    ud->kv = 1;
+    ud->udBin->kv = 1;
     break;
   case STATS:
-    ud->kv = 0;
+    ud->udBin->kv = 0;
     break;
   default:
-    ud->kv = -1;
+    ud->udBin->kv = -1;
     break;
   }
 }
@@ -156,9 +156,10 @@ void set_kv(User_data* ud) {
 int get_bytesToRead(User_data* ud) {
   char buflen[4];
   if(ud->offset > 1) {
-    if(ud->offset >= ud->keySize + 9) {
-      ud->bytesToRead = ud->keySize;
-      memcpy(buflen, ud->buf+ud->keySize+5, 4);
+    if(ud->offset >= ud->udBin->keySize + 9) {
+      ud->udBin->bytesToRead = ud->udBin->keySize;
+      memcpy(buflen,
+        ud->buf+ud->udBin->keySize+5, 4);
     } else {
       int rc = READ(ud->fd, buflen, 4);
       memcpy(ud->buf+ud->offset, buflen, 4);
@@ -175,7 +176,7 @@ int get_bytesToRead(User_data* ud) {
   for(int i = 0; i < 3; i++) {
     ptr[i] = buflen[j--];
   }
-  ud->bytesToRead = aux;
+  ud->udBin->bytesToRead = aux;
   return 0;
 }
 
@@ -186,15 +187,15 @@ int get_bytesToRead(User_data* ud) {
  * readBin 
 */
 int getRest(User_data* ud) {
-  if(ud->kv_const == 2) {
-    if(ud->kv == 2) {
+  if(ud->udBin->kv_const == 2) {
+    if(ud->udBin->kv == 2) {
       return 5;
-    } else if(ud->kv == 1) {
-      return 9+ud->keySize;
+    } else if(ud->udBin->kv == 1) {
+      return 9+ud->udBin->keySize;
     } else {
       return -1;
     }
-  } else if(ud->kv_const == 1) {
+  } else if(ud->udBin->kv_const == 1) {
     return 5;
   }
   return -1;
@@ -202,47 +203,47 @@ int getRest(User_data* ud) {
 
 int readBin(User_data* ud) {
   if(ud->buf == NULL) {
-    ud->bufSize=2000;
+    ud->udBin->bufSize=2000;
     ud->buf =
-      allocate_mem(ud->bufSize, NULL); 
+      allocate_mem(ud->udBin->bufSize, NULL); 
     ud->offset = 0;
     int rc = READ(ud->fd, ud->buf, 1);
     ud->offset+=rc;
     ud->readNext = 1;
-    ud->reading = 0;
+    ud->udBin->reading = 0;
     set_kv(ud);    
-    if(ud->kv == 0 || ud->kv == -1) {
+    if(ud->udBin->kv == 0 || ud->udBin->kv == -1) {
       return 0;
     }
-    ud->kv_const = ud->kv;
+    ud->udBin->kv_const = ud->udBin->kv;
   }
   int rc = 0;
   while(1) {  
-    if(!ud->reading) {
+    if(!ud->udBin->reading) {
       int res = get_bytesToRead(ud);
       if(res != 0) {
         return res;
       }
-      ud->reading = 1;
-      if(ud->kv == 2) {
-        ud->keySize = ud->bytesToRead;
+      ud->udBin->reading = 1;
+      if(ud->udBin->kv == 2) {
+        ud->udBin->keySize = ud->udBin->bytesToRead;
       }
     }
-    if(ud->offset + READSIZE > ud->bufSize) {
-      ud->bufSize *= 2;
-      ud->buf = realloc_mem(ud->buf, ud->bufSize, NULL);
+    if(ud->offset + READSIZE > ud->udBin->bufSize) {
+      ud->udBin->bufSize *= 2;
+      ud->buf = realloc_mem(ud->buf, ud->udBin->bufSize, NULL);
       assert(ud->buf);
     }
     if(ud->readNext) {
       rc = READ(ud->fd, ud->buf+ud->offset, READSIZE);
       ud->offset += rc;
     } 
-    if(ud->offset-getRest(ud) >= ud->bytesToRead) {
-      if(ud->kv == 1) {
+    if(ud->offset-getRest(ud) >= ud->udBin->bytesToRead) {
+      if(ud->udBin->kv == 1) {
         return 0;
       } else {
-        ud->kv--;
-        ud->reading = 0;
+        ud->udBin->kv--;
+        ud->udBin->reading = 0;
         if(rc < READSIZE) {
           ud->readNext = 0;
         }
