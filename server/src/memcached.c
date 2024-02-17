@@ -22,8 +22,10 @@
 #include "text_manage.h"
 #include "bin_manage.h"
 #include "user_data.h"
-#define MAX_THREADS 6
+
 #define MAX_EVENTS 10
+
+long MAX_THREADS;
 
 Cache memcache;
 
@@ -270,12 +272,12 @@ void epoll_start(int binsock, int textsock){
 	printf("epoll bin configurado\n");
 
 	pthread_t threads[MAX_THREADS];
-	for (size_t i = 0; i < MAX_THREADS; i++) {
+	for (long i = 0; i < MAX_THREADS; i++) {
 		pthread_create(threads+i, NULL,
 			eventloop, (void*) &eloop);
 	}
 
-	for (size_t i = 0; i < MAX_THREADS; i++) {
+	for (long i = 0; i < MAX_THREADS; i++) {
 		pthread_join(threads[i],NULL);
 	}
 }
@@ -284,5 +286,6 @@ void memcached_start(int tsock,int bsock){
 	printf("iniciando\n");
 	memcache = cache_create(1000000);
 	printf("cache creada\n");
+	MAX_THREADS = sysconf(_SC_NPROCESSORS_ONLN);
 	epoll_start(bsock, tsock);
 };
