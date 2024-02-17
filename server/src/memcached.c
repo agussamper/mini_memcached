@@ -77,48 +77,46 @@ void listenAgain(int epollfd, User_data* ud) {
 */
 void handle_binUser(int epollfd, 
 		User_data* ud) {
-	while (1) {
-		int readRet = readBin(ud);
-		if(-1 == readRet) {
-			disconnect_user(ud);
-			return;
-		}
-		if(0 == readRet) {
-			ud->udBin->prevRead = 0; 
-			bin_consume(memcache, 
-				ud->buf, ud->fd);
-			user_data_restart(ud);
-			struct epoll_event event;
-			event.data.ptr = ud;
-			event.events = EPOLLIN | EPOLLONESHOT;
-			epoll_ctl(epollfd, EPOLL_CTL_MOD,
-				ud->fd, &event);				
-			return;
-		}
-		if(1 == readRet) {
-			if(ud->udBin->prevRead == 1) {
-				clock_t end = clock();
-				double sec_taken = 
-					((double) 
-						(end - ud->udBin->start))
-							/ CLOCKS_PER_SEC;
-				if(sec_taken >= 30) {
-					user_data_restart(ud);
-					char c = EINVALID;
-					write(ud->fd,&c,1);
-					return;
-				}
-			} else {
-				ud->udBin->prevRead = 1;
-				ud->udBin->start = clock();
-			}
-			listenAgain(epollfd, ud);
-			return;				
-		}
-		printf("readRet VALOR DESCONOCIDO %d\n", readRet);	
-		perror("readRet error");
-		exit(EXIT_FAILURE);
+	int readRet = readBin(ud);
+	if(-1 == readRet) {
+		disconnect_user(ud);
+		return;
 	}
+	if(0 == readRet) {
+		ud->udBin->prevRead = 0; 
+		bin_consume(memcache, 
+			ud->buf, ud->fd);
+		user_data_restart(ud);
+		struct epoll_event event;
+		event.data.ptr = ud;
+		event.events = EPOLLIN | EPOLLONESHOT;
+		epoll_ctl(epollfd, EPOLL_CTL_MOD,
+			ud->fd, &event);				
+		return;
+	}
+	if(1 == readRet) {
+		if(ud->udBin->prevRead == 1) {
+			clock_t end = clock();
+			double sec_taken = 
+				((double) 
+					(end - ud->udBin->start))
+						/ CLOCKS_PER_SEC;
+			if(sec_taken >= 30) {
+				user_data_restart(ud);
+				char c = EINVALID;
+				write(ud->fd,&c,1);
+				return;
+			}
+		} else {
+			ud->udBin->prevRead = 1;
+			ud->udBin->start = clock();
+		}
+		listenAgain(epollfd, ud);
+		return;				
+	}
+	printf("readRet VALOR DESCONOCIDO %d\n", readRet);	
+	perror("readRet error");
+	exit(EXIT_FAILURE);
 }
 
 /**
@@ -134,16 +132,14 @@ void handle_textUser(int epollfd, User_data* ud) {
 		ud->readNext = 0;
 		ud->buf = allocate_mem(2048,NULL);
 	}
-	while(1){
-		int res = text_consume(memcache,
-			ud);
-		if(res == -1) {
-			disconnect_user(ud);
-			return;
-		} else {
-			listenAgain(epollfd, ud);
-			return;			
-		}
+	int res = text_consume(memcache,
+		ud);
+	if(res == -1) {
+		disconnect_user(ud);
+		return;
+	} else {
+		listenAgain(epollfd, ud);
+		return;			
 	}
 }
 
