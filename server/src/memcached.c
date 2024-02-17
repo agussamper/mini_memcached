@@ -87,12 +87,13 @@ void handle_binUser(int epollfd, User_data* ud) {
 */
 void handle_textUser(int epollfd, User_data* ud) {
 	if(ud->buf == NULL){
+		ud->readNext = 0;
 		ud->buf = allocate_mem(2048,NULL);
 		ud->bufSize = 2048;
 	}
 	while(1){
 		int res = text_consume(memcache,
-			ud->fd,ud->buf,&ud->offset);
+			ud);
 		if(res == -1) {
 			close(ud->fd);
 			epoll_ctl(ud->fd, EPOLL_CTL_DEL,

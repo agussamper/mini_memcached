@@ -5,6 +5,7 @@
 
 #include <sys/epoll.h>
 #include "cache.h"
+#include "user_data.h"
 
 /**
  * Lee hasta llenar el buffer, atiende
@@ -29,6 +30,6 @@
  * -1: errores criticos o desconección del cliente.
  */
 int text_consume(Cache cache,
-  int fd, char buf[2048], u_int64_t* offset);
+  User_data* ud);
 
 #endif

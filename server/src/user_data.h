@@ -12,7 +12,7 @@
 typedef struct User_data {
   int fd; // File descriptor
   int mode; // Indica si esta en BINARY O TEXT
-  char* buf; 
+  char* buf;
   uint64_t bufSize; // Tamaño del buffer
   uint64_t offset; // Posición del buffer en
           // la que estoy leyendo
@@ -20,14 +20,15 @@ typedef struct User_data {
           // Contienen la longitud de la 
           // clave o del valor
   uint32_t keySize; // Longitud de la clave
-  char kv; // 2 si para la operacion falta
+  char kv; // 2 si para la operacion falta 
            // leer clave y valor, 1 si sólo
            // falta la clave y 0 si no falta
            // nada
   char kv_const;
   char reading; // 1 si esta leyendo una clave
                 // o valor, 0 en caso contrario 
-  char readNext; //Usado en readBin
+  char readNext; //Usado en readBin // usado en text_manage para 
+  //representar el maximo de EBIG permitidos
 } User_data;
 
 /**
