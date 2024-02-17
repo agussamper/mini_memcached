@@ -1,7 +1,7 @@
 -module(clientTest).
 -import(client, [start/1, close/1, put/3,
   get/2]).
--export([get_val/0, start_putkey/0, start_putval/0, get_elem/2]).
+-export([get_val/0, start_putkey/0, start_putval/0, get_elem/2, put_elem/2]).
 
 readlines(FileName) ->
     {ok, Device} = file:open(FileName, [read]),
@@ -27,10 +27,19 @@ get_elem(Key, X) ->
     %string:length(Val),
     client:close(Pid).
 
+put_elem(Key, Value) ->
+	Pid = client:start(localhost),
+    Resp = client:put(Pid,Key,Value),
+    io:fwrite("~p) ~p~n",
+        [Key, Resp]),
+    client:close(Pid).
+
+
 spawn_processes(0, Str) ->
-    spawn(clientTest, get_elem, [str, 0]);
+    spawn(clientTest, put_elem, [0, Str]);
 spawn_processes(X, Str) ->
-    spawn(clientTest, get_elem, [str, X]),
+    %spawn(clientTest, get_elem, [str, X]),
+	spawn(clientTest, put_elem, [X, Str]),
 	sleep(1),
     spawn_processes(X-1, Str).
 

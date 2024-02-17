@@ -168,7 +168,6 @@ int text_consume(Cache cache, User_data* ud){
 		int lens[3] = {0};
 		int ntok;
 		ntok = text_parser(buf,toks,lens);
-		printf("PEDIDO PARSEADO\n");
 		text_handle(cache, fd,
       toks,lens,ntok);
 		nlen -= len + 1;

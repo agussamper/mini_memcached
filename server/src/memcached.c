@@ -36,25 +36,55 @@ typedef struct epoll_loop {
 } epoll_loop;
 
 /**
+ * Cierra la de un usuario, también
+ * elimina sus datos
+ * @param ud Datos del usuario a eliminar
+*/
+void disconnect_user(User_data* ud) {
+	close(ud->fd);
+	epoll_ctl(ud->fd, EPOLL_CTL_DEL,
+		ud->fd, NULL);
+	user_data_destroy(ud);
+	puts("usuario desconectado");		
+}
+
+/**
+ * Setea el file descriptor de ud para que
+ * vuelva a ser tenido en cuenta por epollfd
+ * @param epollfd file desciptor de epoll
+ * @param ud datos de usuario
+*/
+void listenAgain(int epollfd, User_data* ud) {
+	struct epoll_event event;
+	event.data.ptr = ud;
+	event.events = EPOLLIN | EPOLLONESHOT;
+	epoll_ctl(epollfd, EPOLL_CTL_MOD,
+		ud->fd, &event);	
+}
+
+/**
  * Función auxiliar de handle_user, esta
  * función se llama cuando el usuario está
- * en modo binario
+ * en modo binario.
+ * En caso que el paquete se envia por partes
+ * si no se recibe la parte restante en 
+ * 30 segundo se descarta todo lo enviado
+ * hasta el momento y se envía EINVALID
+ * al cliente.
  * @param epollfd file desctiptor de epoll.
  * @param ud puntero a estructura con
  * datos del usuario.
 */
-void handle_binUser(int epollfd, User_data* ud) {
+void handle_binUser(int epollfd, 
+		User_data* ud) {
 	while (1) {
 		int readRet = readBin(ud);
 		if(-1 == readRet) {
-			close(ud->fd);
-			epoll_ctl(ud->fd, EPOLL_CTL_DEL,
-				ud->fd, NULL);
-			user_data_destroy(ud);
-			puts("usuario desconectado");		
+			disconnect_user(ud);
 			return;
 		}
-		if(0 == readRet) { 
+		if(0 == readRet) {
+			ud->udBin->prevRead = 0; 
 			bin_consume(memcache, 
 				ud->buf, ud->fd);
 			user_data_restart(ud);
@@ -66,11 +96,23 @@ void handle_binUser(int epollfd, User_data* ud) {
 			return;
 		}
 		if(1 == readRet) {
-			struct epoll_event event;
-			event.data.ptr = ud;
-			event.events = EPOLLIN | EPOLLONESHOT;
-			epoll_ctl(epollfd, EPOLL_CTL_MOD,
-				ud->fd, &event);
+			if(ud->udBin->prevRead == 1) {
+				clock_t end = clock();
+				double sec_taken = 
+					((double) 
+						(end - ud->udBin->start))
+							/ CLOCKS_PER_SEC;
+				if(sec_taken >= 30) {
+					user_data_restart(ud);
+					char c = EINVALID;
+					write(ud->fd,&c,1);
+					return;
+				}
+			} else {
+				ud->udBin->prevRead = 1;
+				ud->udBin->start = clock();
+			}
+			listenAgain(epollfd, ud);
 			return;				
 		}
 		printf("readRet VALOR DESCONOCIDO %d\n", readRet);	
@@ -96,18 +138,10 @@ void handle_textUser(int epollfd, User_data* ud) {
 		int res = text_consume(memcache,
 			ud);
 		if(res == -1) {
-			close(ud->fd);
-			epoll_ctl(ud->fd, EPOLL_CTL_DEL,
-			ud->fd, NULL);
-			user_data_destroy(ud);
-			puts("usuario desconectado");		
+			disconnect_user(ud);
 			return;
 		} else {
-			struct epoll_event event;
-			event.data.ptr = ud;
-			event.events = EPOLLIN | EPOLLONESHOT;
-			epoll_ctl(epollfd, EPOLL_CTL_MOD,
-				ud->fd, &event);
+			listenAgain(epollfd, ud);
 			return;			
 		}
 	}
