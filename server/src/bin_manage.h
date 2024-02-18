@@ -9,9 +9,8 @@
 #include "user_data.h"
 
 /**
- * Responde a la consulta al servidor que
- * hay en buf, escribiendo la respuesta en
- * fd.
+ * Responde la consulta del cliente. 
+ * Escribe la respuesta en fd.
  * @param cache cache a la cual modificar/consultar.
  * @param buf buffer con la consulta.
  * @param fd file descritor al cual escribir

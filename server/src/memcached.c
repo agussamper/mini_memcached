@@ -147,7 +147,7 @@ void handle_textUser(int epollfd, User_data* ud) {
  * Dependiendo de si el usuario está en modo
  * texto o binario llama a handle_textUser
  * o handle_binUser, las cuales leen lo que
- * el usuario envío al servidor y les
+ * el usuario envió al servidor y les
  * contestan. Si no se pudo leer todo el
  * paquete porque es demasiado grande para
  * que entre en el buffer, guarda el estado

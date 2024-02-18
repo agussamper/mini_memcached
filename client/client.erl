@@ -53,16 +53,6 @@ getLen(Sock) ->
             BinLen),
             3)).
 
-% getNum: sock(), Int -> Int
-% Dado un socket, lee Bytes bytes
-% del mismo, y aplica la función
-% lenToInt para obtener el entero
-getNum(Sock, Bytes)  ->
-    trunc(lenToInt(
-        binary_to_list(
-            gen_tcp:recv(Sock,Bytes)),
-            Bytes-1)).
-
 % sendAndRecv: sock(), binary() -> 
 %   {ok, binary()} | close
 % Manda al servidor Packet y lee de la
@@ -105,8 +95,7 @@ aux_response(Sock, Ins, Code) ->
                 <<?OK>> ->
                     Len = getLen(Sock),
                     {ok, BinStats} = gen_tcp:recv(Sock, Len),
-                    Stats = binary_to_list(BinStats),
-                    {ok, Stats};
+                    binary_to_list(BinStats);
                 _ -> {error, Code}
             end
     end.
