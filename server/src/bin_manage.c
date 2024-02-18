@@ -9,27 +9,10 @@
 
 #define READSIZE 1000
 
-#define READ(fd, buf, n) ({						\
-	int rc = read(fd, buf, n);					\
-	int error = errno;  \
-  if (rc == 0)  \
-    return -1;  \
-  if (rc < 0) { \
-    if(error == EINVAL || error == EWOULDBLOCK) { \
-      puts("user_data_read: EINVAL O EWOULDBLOCK"); \
-      return 1; \
-    } \
-    printf("error in read()! %s\n", strerror(error));      \
-	  return -1;  \
-  } \
-  rc; })
-
 void bin_consume(Cache cache , char* buf, int fd) {
-	puts("ESTOY EN BIN CONSUME");
 	char comm;
 	int i = 0;
 	comm = buf[i++];
-	printf("comm=%d\n", comm);
 	char buflen[4];
 	int lenk;
 	switch (comm)
@@ -55,7 +38,6 @@ void bin_consume(Cache cache , char* buf, int fd) {
 			write(fd,&response,1);
 			printf("insert error\n");	
 		}
-		puts("SALGO PUT");
 		break;
 	case DEL:
 		memcpy(buflen, buf+i, 4);

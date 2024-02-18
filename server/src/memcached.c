@@ -258,9 +258,9 @@ void* eventloop(void* arg) {
 				puts("por aceptar cliente texto");			
 				user_accept(eloop, TEXT);
 			} else {
-				puts("manejo peticion");
+				//puts("manejo peticion");
  				handle_user(eloop->epollfd, ud);
-				puts("peticion manejada");
+				//puts("peticion manejada");
 			}
 		}
 	}

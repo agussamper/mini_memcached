@@ -7,6 +7,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define READ(fd, buf, n) ({						\
+	int rc = read(fd, buf, n);					\
+	int error = errno;  \
+  if (rc == 0)  \
+    return -1;  \
+  if (rc < 0) { \
+    if(error == EINVAL || error == EWOULDBLOCK) { \
+      puts("user_data_read: EINVAL O EWOULDBLOCK"); \
+      return 1; \
+    } \
+    printf("error in read()! %s\n", strerror(error));      \
+	  return -1;  \
+  } \
+  rc; })
+
 enum code {
 	PUT = 11,
 	DEL = 12,

@@ -9,20 +9,6 @@
 
 #define MAX_FORWARD 11
 
-#define READ(fd, buf, n) ({						\
-	int rc = read(fd, buf, n);					\
-	int error = errno;  \
-  if (rc == 0)  \
-    return -1;  \
-  if (rc < 0) { \
-    if(error == EINVAL || error == EWOULDBLOCK) { \
-      puts("user_data_read: EINVAL O EWOULDBLOCK"); \
-      return 1; \
-    } \
-    printf("error in read()! %s\n", strerror(error));      \
-	  return -1;  \
-  } \
-  rc; })
 /*
  * Dado un pedido tokenizado lo atiende,
  * respondiendo en el file descriptor fd,
@@ -41,7 +27,6 @@ void text_handle(
 	} 
 	if(!strcmp(toks[0],"PUT")){
 		if(ntok !=3){
-			printf("ntok !=3\n");
 			char response[20];
 			int len = sprintf(response,
 				"EINVAL\n");
