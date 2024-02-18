@@ -11,10 +11,10 @@
 
 void bin_consume(Cache cache , char* buf, int fd) {
 	char comm;
-	int i = 0;
+	uint64_t i = 0;
 	comm = buf[i++];
 	char buflen[4];
-	int lenk;
+	uint32_t lenk;
 	switch (comm)
 	{
 	case PUT:

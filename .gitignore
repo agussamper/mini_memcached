@@ -9,3 +9,5 @@ client/client.c
 client/recibidos
 server/obj
 server/bin
+client/clientTest2.erl
+client/client2.erl
