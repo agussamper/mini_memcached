@@ -152,7 +152,7 @@ int text_consume(Cache cache, User_data* ud){
 		char *toks[3]= {NULL};
 		int lens[3] = {0};
 		int ntok;
-		ntok = text_parser(buf,toks,lens);
+		ntok = text_parser(p0,toks,lens);
 		text_handle(cache, fd,
       toks,lens,ntok);
 		nlen -= len + 1;
