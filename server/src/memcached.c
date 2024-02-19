@@ -15,6 +15,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <syscall.h>
+#include <sys/timerfd.h>
 #include "memcached.h"
 #include "cache.h"
 #include "common.h"
@@ -24,6 +25,7 @@
 #include "user_data.h"
 
 #define MAX_EVENTS 10
+#define TIMEOUT_MS 15000 //miliseconds
 
 long MAX_THREADS;
 
@@ -31,16 +33,38 @@ Cache memcache;
 
 typedef struct epoll_loop {
 	int epollfd; //File descriptor de epoll
+	int epoll_timer; //File descriptor de epoll para timer
 	int fd_text; //File descriptor del socket de texto
 	int fd_bin;  //File descriotor del socket binario
 } epoll_loop;
 
+//TODO: documentar
+void timeOut(int timer_epoll,
+	 Timerfd* tfd) {
+	puts("TIME OUT");	
+	char c = EINVALID;
+	write(tfd->ud->fd,&c,1);
+	epoll_ctl(timer_epoll,
+	 	EPOLL_CTL_DEL, tfd->timefd,
+		NULL);
+	user_data_restart(tfd->ud);
+}
+
+//TODO: documentar
 /**
  * Cierra la de un usuario, también
  * elimina sus datos
  * @param ud Datos del usuario a eliminar
 */
-void disconnect_user(User_data* ud) {
+void disconnect_user(int timer_epoll ,User_data* ud) {
+	if(timer_epoll != -1 &&
+			ud->udBin->prevRead == 1) {
+		epoll_ctl(timer_epoll,
+		 	EPOLL_CTL_DEL,
+			ud->udBin->tfd->timefd,
+			NULL);
+		free(ud->udBin->tfd);
+	}
 	close(ud->fd);
 	epoll_ctl(ud->fd, EPOLL_CTL_DEL,
 		ud->fd, NULL);
@@ -62,6 +86,52 @@ void listenAgain(int epollfd, User_data* ud) {
 		ud->fd, &event);	
 }
 
+//TODO: documentar
+void setTimer(User_data* ud, int timer_epoll) {
+	int timer_fd = timerfd_create(CLOCK_MONOTONIC, 0);
+  if (timer_fd == -1) {
+      perror("timerfd_create");
+      exit(EXIT_FAILURE);
+  }
+
+  // Configurar el temporizador para expirar después de TIMEOUT_MS milisegundos
+  struct itimerspec timer_spec;
+  timer_spec.it_interval.tv_sec = 0;
+  timer_spec.it_interval.tv_nsec = 0;
+  timer_spec.it_value.tv_sec = TIMEOUT_MS / 1000;
+  timer_spec.it_value.tv_nsec = (TIMEOUT_MS % 1000) * 1000000;
+  if (timerfd_settime(timer_fd, 0, &timer_spec, NULL) == -1) {
+      perror("timerfd_settime");
+      exit(EXIT_FAILURE);
+  }
+
+	// Agregar el temporizador al epoll FD
+  struct epoll_event ev;
+  ev.events = EPOLLIN;
+	Timerfd* tfd = 
+		allocate_mem(sizeof(Timerfd), NULL);
+	tfd->timefd = timer_fd;
+	tfd->ud = ud;
+  ev.data.ptr = tfd;
+  if (epoll_ctl(timer_epoll,
+		EPOLL_CTL_ADD, timer_fd, &ev) == -1) {
+      perror("epoll_ctl");
+      exit(EXIT_FAILURE);
+  }
+	ud->udBin->tfd = tfd;
+}
+
+//TODO: documentar
+void timerDel(int timer_epoll,
+		User_data* ud) {
+	epoll_ctl(timer_epoll,
+	 	EPOLL_CTL_DEL, 
+		ud->udBin->tfd->timefd,
+		NULL);
+	free(ud->udBin->tfd);
+	ud->udBin->tfd = NULL;
+}
+
 /**
  * Función auxiliar de handle_user, esta
  * función se llama cuando el usuario está
@@ -76,40 +146,26 @@ void listenAgain(int epollfd, User_data* ud) {
  * datos del usuario.
 */
 void handle_binUser(int epollfd, 
-		User_data* ud) {
+		User_data* ud, int timer_epoll) {
 	int readRet = readBin(ud);
 	if(-1 == readRet) {
-		disconnect_user(ud);
+		disconnect_user(timer_epoll, ud);
 		return;
 	}
 	if(0 == readRet) {
-		ud->udBin->prevRead = 0; 
+		if(1 == ud->udBin->prevRead)
+		timerDel(timer_epoll, ud);
+		ud->udBin->prevRead = 0; 		
 		bin_consume(memcache, 
 			ud->buf, ud->fd);
 		user_data_restart(ud);
-		struct epoll_event event;
-		event.data.ptr = ud;
-		event.events = EPOLLIN | EPOLLONESHOT;
-		epoll_ctl(epollfd, EPOLL_CTL_MOD,
-			ud->fd, &event);				
+		listenAgain(epollfd, ud);
 		return;
 	}
 	if(1 == readRet) {
-		if(ud->udBin->prevRead == 1) {
-			clock_t end = clock();
-			double sec_taken = 
-				((double) 
-					(end - ud->udBin->start))
-						/ CLOCKS_PER_SEC;
-			if(sec_taken >= 30) {
-				user_data_restart(ud);
-				char c = EINVALID;
-				write(ud->fd,&c,1);
-				return;
-			}
-		} else {
+		if(0 == ud->udBin->prevRead) {
 			ud->udBin->prevRead = 1;
-			ud->udBin->start = clock();
+			setTimer(ud, timer_epoll);	
 		}
 		listenAgain(epollfd, ud);
 		return;				
@@ -135,7 +191,7 @@ void handle_textUser(int epollfd, User_data* ud) {
 	int res = text_consume(memcache,
 		ud);
 	if(res == -1) {
-		disconnect_user(ud);
+		disconnect_user(-1, ud);
 		return;
 	} else {
 		listenAgain(epollfd, ud);
@@ -160,9 +216,9 @@ void handle_textUser(int epollfd, User_data* ud) {
  * @param ud puntero a estructura con
  * datos del usuario.
 */
-void handle_user(int epollfd, User_data* ud) {
+void handle_user(int epollfd, int timer_epoll, User_data* ud) {
 	if(ud->udBin != NULL)
-		handle_binUser(epollfd, ud);
+		handle_binUser(epollfd, ud, timer_epoll);
 	else
 		handle_textUser(epollfd, ud);
 }
@@ -259,9 +315,34 @@ void* eventloop(void* arg) {
 				user_accept(eloop, TEXT);
 			} else {
 				//puts("manejo peticion");
- 				handle_user(eloop->epollfd, ud);
+ 				handle_user(eloop->epollfd, 
+					eloop->epoll_timer, ud);
 				//puts("peticion manejada");
 			}
+		}
+	}
+}
+
+//TODO: documentar
+void* timer_epollStart(void* epoll_timer_fd) {
+	int epoll_timer = *((int*)epoll_timer_fd);
+
+	printf("epoll timer configurado\n");
+
+	struct epoll_event events[MAX_EVENTS];
+	int num_events;
+	while(1) {
+		num_events = 
+			epoll_wait(epoll_timer,
+				events, MAX_EVENTS, -1);
+		if (num_events == -1) {
+			perror("binepoll_wait");
+			exit(EXIT_FAILURE);
+		}
+		for(int i = 0; i < num_events; i++) {
+			Timerfd* tfd = 
+				(Timerfd*)events[i].data.ptr;
+			timeOut(epoll_timer, tfd);		
 		}
 	}
 }
@@ -275,6 +356,12 @@ void* eventloop(void* arg) {
  * @param bsock Socket de escucha para modo binario
 */
 void epoll_start(int binsock, int textsock){
+
+	int epoll_timer = epoll_create1(0);
+	pthread_t timerThread;
+	pthread_create(&timerThread, NULL,
+			timer_epollStart, (void*)&epoll_timer);
+
 	setnonblocking(binsock);
 	setnonblocking(textsock);
 	int epoll_fd = epoll_create1(0);
@@ -283,8 +370,9 @@ void epoll_start(int binsock, int textsock){
 	
 	epoll_loop eloop;
 	eloop.epollfd = epoll_fd;
+	eloop.epoll_timer = epoll_timer;
 	eloop.fd_bin = binsock;
-	eloop.fd_text = textsock;
+	eloop.fd_text = textsock;	
 	
   epollevent.data.ptr = user_data_init(binsock, BINARY);
   epoll_ctl(epoll_fd, EPOLL_CTL_ADD,
@@ -294,14 +382,15 @@ void epoll_start(int binsock, int textsock){
 	epoll_ctl(epoll_fd, EPOLL_CTL_ADD,
 		textsock, &epollevent);
 
-	printf("epoll bin configurado\n");
+	printf("epoll configurado\n");
 
 	pthread_t threads[MAX_THREADS];
 	for (long i = 0; i < MAX_THREADS; i++) {
 		pthread_create(threads+i, NULL,
 			eventloop, (void*) &eloop);
-	}
+	}	
 
+	pthread_join(timerThread,NULL);
 	for (long i = 0; i < MAX_THREADS; i++) {
 		pthread_join(threads[i],NULL);
 	}
@@ -311,6 +400,6 @@ void memcached_start(int tsock,int bsock){
 	printf("iniciando\n");
 	memcache = cache_create(1000000);
 	printf("cache creada\n");
-	MAX_THREADS = sysconf(_SC_NPROCESSORS_ONLN);
+	MAX_THREADS = sysconf(_SC_NPROCESSORS_ONLN);	
 	epoll_start(bsock, tsock);
 };

@@ -17,7 +17,7 @@
 % tcp_connect: inet:socket_address() | inet:hostname() -> socket()
 % Se conecta a un servior en el puerto TCP 889
 tcp_connect(Address) ->
-    gen_tcp:connect(Address, 889,
+    gen_tcp:connect(Address, 8889, %//TODO: cambiar puerto
         [binary, {packet,0}, {active, false},
             {exit_on_close, false}]).
 
@@ -71,7 +71,7 @@ aux_response(Sock, Ins, Code) ->
         put ->             
             case Code of
                 <<?OK>> -> ok;
-                _ -> {error, Code}
+                _ -> {error, Code} %//TODO: traducir codigo
             end;            
         get ->
             case Code of                

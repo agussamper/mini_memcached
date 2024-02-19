@@ -68,17 +68,17 @@ void setmemlimit(uint64_t bytes) {
 
 int main()
 {
-	uid_t uid = getuid();
+	/*uid_t uid = getuid(); //TODO: sacar comentarios
   if(uid){
     puts("SE REQUIEREN PERMISOS DE SUPERUSUARIO");
 		return 0;
-  }
+  }*/
 	uint64_t maxBytes = 1;
 	maxBytes = maxBytes << 32; //4GB
 	setmemlimit(maxBytes);
 	int tSock, bSock;
-	tSock = mk_lsock(888);
-  bSock = mk_lsock(889);
+	tSock = mk_lsock(8888); //TODO: cambiar puertos
+  bSock = mk_lsock(8889);
 	setuid(1000);
 	memcached_start(tSock,bSock);
 	return 0;

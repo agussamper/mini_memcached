@@ -20,6 +20,7 @@ User_data* user_data_init(int fd, int mode) {
       allocate_mem(sizeof(User_dataBin), NULL);
     ud->udBin = udBin;
     ud->udBin->prevRead = 0;
+    ud->udBin->tfd = NULL;
   } else {
     ud->udBin = NULL;
   }
@@ -32,12 +33,14 @@ User_data* user_data_restart(User_data* ud) {
     ud->buf = NULL;
   }
   ud->offset = 0;
-  if(NULL != ud->udBin) {
+  if(NULL != ud->udBin) {    
     ud->udBin->bufSize = 0;  
     ud->udBin->reading = 0;
     ud->udBin->bytesToRead = 0;
     ud->udBin->keySize = 0;
     ud->udBin->prevRead = 0;
+    free(ud->udBin->tfd);
+    ud->udBin->tfd = NULL;
   }
   return ud;
 }
