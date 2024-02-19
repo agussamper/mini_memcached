@@ -38,7 +38,16 @@ typedef struct epoll_loop {
 	int fd_bin;  //File descriotor del socket binario
 } epoll_loop;
 
-//TODO: documentar
+
+/**
+ * Reinicia los datos del usuario
+ * asociados a tfd, elimina tfd del
+ * epoll del timer y manda al cliente
+ * EINVALID
+ * @param timer_epoll file descriptor de
+ * epoll para los temporizadores.
+ * @param tfd file descriptor de timerfd. 
+*/
 void timeOut(int timer_epoll,
 	 Timerfd* tfd) {
 	puts("TIME OUT");	
@@ -48,28 +57,7 @@ void timeOut(int timer_epoll,
 	 	EPOLL_CTL_DEL, tfd->timefd,
 		NULL);
 	user_data_restart(tfd->ud);
-}
-
-//TODO: documentar
-/**
- * Cierra la de un usuario, también
- * elimina sus datos
- * @param ud Datos del usuario a eliminar
-*/
-void disconnect_user(int timer_epoll ,User_data* ud) {
-	if(timer_epoll != -1 &&
-			ud->udBin->prevRead == 1) {
-		epoll_ctl(timer_epoll,
-		 	EPOLL_CTL_DEL,
-			ud->udBin->tfd->timefd,
-			NULL);
-		free(ud->udBin->tfd);
-	}
-	close(ud->fd);
-	epoll_ctl(ud->fd, EPOLL_CTL_DEL,
-		ud->fd, NULL);
-	user_data_destroy(ud);
-	puts("usuario desconectado");		
+	free(tfd);	
 }
 
 /**
@@ -86,7 +74,14 @@ void listenAgain(int epollfd, User_data* ud) {
 		ud->fd, &event);	
 }
 
-//TODO: documentar
+/**
+ * Configura el timer en TIMEOUT_MS,
+ * lo asocia con ud y lo agrega al epoll.
+ * @param ud datos de usuario a los que
+ * estará asociado el timer.
+ * @param timer_epoll file descriptor del
+ * epoll de los timer.
+*/
 void setTimer(User_data* ud, int timer_epoll) {
 	int timer_fd = timerfd_create(CLOCK_MONOTONIC, 0);
   if (timer_fd == -1) {
@@ -121,7 +116,17 @@ void setTimer(User_data* ud, int timer_epoll) {
 	ud->udBin->tfd = tfd;
 }
 
-//TODO: documentar
+/**
+ * Elimina el timer asociados
+ * a los datos de usuarios pasados
+ * por argumentos del epoll de los
+ * timer.
+ * @param epoll file descriptor del
+ * epoll de los timer.
+ * @param ud datos de usuario a los
+ * cuales se le quiere eliminar el
+ * timer del epoll
+*/
 void timerDel(int timer_epoll,
 		User_data* ud) {
 	epoll_ctl(timer_epoll,
@@ -133,17 +138,38 @@ void timerDel(int timer_epoll,
 }
 
 /**
+ * Cierra la conexión de un usuario, también
+ * elimina sus datos
+ * @param timer_epoll sirve para eliminar el
+ * timer asociado en caso de que exista.
+ * @param ud Datos del usuario a eliminar.
+*/
+void disconnect_user(int timer_epoll ,User_data* ud) {
+	if(timer_epoll != -1 &&
+			ud->udBin->prevRead == 1) {
+		timerDel(timer_epoll, ud);
+	}
+	close(ud->fd);
+	epoll_ctl(ud->fd, EPOLL_CTL_DEL,
+		ud->fd, NULL);
+	user_data_destroy(ud);
+	puts("usuario desconectado");		
+}
+
+/**
  * Función auxiliar de handle_user, esta
  * función se llama cuando el usuario está
  * en modo binario.
  * En caso que el paquete se envia por partes
  * si no se recibe la parte restante en 
- * 30 segundo se descarta todo lo enviado
+ * 15 segundos se descarta todo lo enviado
  * hasta el momento y se envía EINVALID
  * al cliente.
  * @param epollfd file desctiptor de epoll.
  * @param ud puntero a estructura con
  * datos del usuario.
+ * @param timer_epoll epoll de los timer
+ * para el manejo de los mismos
 */
 void handle_binUser(int epollfd, 
 		User_data* ud, int timer_epoll) {
@@ -153,8 +179,9 @@ void handle_binUser(int epollfd,
 		return;
 	}
 	if(0 == readRet) {
-		if(1 == ud->udBin->prevRead)
-		timerDel(timer_epoll, ud);
+		if(1 == ud->udBin->prevRead) {
+			timerDel(timer_epoll, ud);
+		}
 		ud->udBin->prevRead = 0; 		
 		bin_consume(memcache, 
 			ud->buf, ud->fd);
@@ -323,7 +350,16 @@ void* eventloop(void* arg) {
 	}
 }
 
-//TODO: documentar
+/**
+ * Escucha los eventos del epoll de los timer,
+ * cuando ocurre un evento reiniciará los datos
+ * de usuario asociados y eliminará el file
+ * descriptor del evento ocurrido de la
+ * lista de eventos que debe notificar el
+ * epoll, además liberará su memoria
+ * @param epoll_timer_fd puntero a file
+ * descriptor del epoll de los timer. 
+ * */ 
 void* timer_epollStart(void* epoll_timer_fd) {
 	int epoll_timer = *((int*)epoll_timer_fd);
 

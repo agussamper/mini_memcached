@@ -39,7 +39,6 @@ User_data* user_data_restart(User_data* ud) {
     ud->udBin->bytesToRead = 0;
     ud->udBin->keySize = 0;
     ud->udBin->prevRead = 0;
-    free(ud->udBin->tfd);
     ud->udBin->tfd = NULL;
   }
   return ud;
