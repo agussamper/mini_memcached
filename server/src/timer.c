@@ -20,8 +20,9 @@
 
 struct _Timerfd {
   int timefd; // File descriptor del timer
-  struct User_data* ud; //File descriptor
-		// de los datos asociados al timer
+  struct User_data* ud; //Puntero a 
+			//datos de usuario
+		 	//asociados al timer
 };
 
 void timeOut(int timer_epoll,
