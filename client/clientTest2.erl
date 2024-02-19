@@ -18,5 +18,6 @@ aux_putValues(Pid, X) ->
 
 put_values() ->
   Pid = client2:start(localhost),
-  aux_putValues(Pid, 100000),
+  aux_putValues(Pid, 100),
+  sleep(5000),
   client2:close(Pid).

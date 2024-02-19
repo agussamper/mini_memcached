@@ -17,7 +17,7 @@
 % tcp_connect: inet:socket_address() | inet:hostname() -> socket()
 % Se conecta a un servior en el puerto TCP 889
 tcp_connect(Address) ->
-    gen_tcp:connect(Address, 889,
+    gen_tcp:connect(Address, 8889,
         [binary, {packet,0}, {active, false},
             {exit_on_close, false}]).
 

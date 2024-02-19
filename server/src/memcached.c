@@ -86,7 +86,7 @@ void handle_binUser(int epollfd,
 		ud->udBin->prevRead = 0; 
 		bin_consume(memcache, 
 			ud->buf, ud->fd);
-		user_data_restart(ud);
+		user_data_adjust(ud);
 		struct epoll_event event;
 		event.data.ptr = ud;
 		event.events = EPOLLIN | EPOLLONESHOT;

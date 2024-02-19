@@ -108,7 +108,7 @@ void bin_consume(Cache cache , char* buf, int fd) {
  * dependiendo del código pasado por
  * argumentos. setea -1 si el código
  * pasado no es válido.
-*/
+
 void set_kv(User_data* ud) {
   switch (ud->buf[0]) {
   case PUT:
@@ -128,7 +128,7 @@ void set_kv(User_data* ud) {
     break;
   }
 }
-
+*/
 /**
  * Función auxiliar
  * Obtiene la longitud de la clave o del
@@ -195,6 +195,7 @@ int readBin(User_data* ud) {
     ud->udBin->reading = 0;
     set_kv(ud);    
     if(ud->udBin->kv == 0 || ud->udBin->kv == -1) {
+      ud->udBin->kv_const = 0;
       return 0;
     }
     ud->udBin->kv_const = ud->udBin->kv;
@@ -211,12 +212,12 @@ int readBin(User_data* ud) {
         ud->udBin->keySize = ud->udBin->bytesToRead;
       }
     }
-    if(ud->offset + READSIZE > ud->udBin->bufSize) {
+    if(ud->offset + READSIZE > ud->udBin->bufSize && ud->readNext == 1) {
       ud->udBin->bufSize *= 2;
       ud->buf = realloc_mem(ud->buf, ud->udBin->bufSize, NULL);
       assert(ud->buf);
     }
-    if(ud->readNext) {
+    if(ud->readNext == 1) {
       rc = READ(ud->fd, ud->buf+ud->offset, READSIZE);
       ud->offset += rc;
     } 
