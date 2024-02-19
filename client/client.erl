@@ -28,7 +28,9 @@ tcp_connect(Address) ->
 start(Address) ->
     case tcp_connect(Address) of
         {ok, Sock} -> 
-            spawn(fun()->requestListener(Sock, Address) end);
+            spawn(fun()->
+                requestListener(Sock, Address)
+            end);
         {error, Reason} -> {error, Reason}
     end.
 
@@ -76,7 +78,77 @@ showError(Code) ->
         <<?EBIG>> -> ebig;
         <<?EUNK>> -> eunk;
         _ -> unknown_answer
-    end.            
+    end.
+
+term_to_binary_big(Term, Binary) ->
+    {}
+
+process_chunk(Term) ->
+    io:format("~p", [Term]).
+
+% Función para deserializar por lotes
+binary_to_term_big(BinaryData, ChunkSize) ->
+    binary_to_term_big(BinaryData, ChunkSize, 0).
+
+% Caso base: cuando ya no hay más datos binarios por deserializar
+binary_to_term_big(<<>>, _ChunkSize, _Contador) ->
+    ok;
+
+% Deserializar el lote actual y procesarlo, luego continuar con el siguiente lote
+binary_to_term_big(BinaryData, ChunkSize, Contador) ->
+    % Obtener el lote actual
+    {Chunk, Rest} = split_binary(BinaryData, ChunkSize),
+    
+    % Deserializar el lote actual
+    Term = binary_to_term(Chunk),
+    
+    % Procesar el lote actual (aquí puedes hacer lo que necesites con el término)
+    process_chunk(Term),
+    
+    % Continuar con el siguiente lote
+    binary_to_term_big(Rest, ChunkSize, Contador + 1).
+
+% Función auxiliar para dividir un binario en dos partes: el lote y el resto
+split_binary(BinaryData, Size) when size(BinaryData) > 50000 ->
+    <<Chunk:Size/binary, Rest/binary>> = BinaryData,
+    {Chunk, Rest};
+split_binary(BinaryData, _Size) ->
+    {BinaryData, <<>>}.
+
+% Función auxiliar para dividir un binario en dos partes: el lote y el resto
+split_(BinaryData, Size) when size(BinaryData) > 50000 ->
+    <<Chunk:Size/binary, Rest/binary>> = BinaryData,
+    {Chunk, Rest};
+split_binary(BinaryData, _Size) ->
+    {BinaryData, <<>>}.
+
+split_term(Term, Size) when size(BinaryData) > 50000 ->
+
+
+receive_dataAux(_Sock, 0, Data) ->
+    io:format("ToRecv=0~n"),
+    {ok,Data};
+receive_dataAux(Sock, ToRecv, Data) ->
+    case gen_tcp:recv(Sock, ToRecv) of
+        {ok, RecData} ->
+            RecDataSize = byte_size(RecData),
+            NewData = <<Data/binary, RecData/binary>>,
+            io:format("ToRecv=~p~n", [ToRecv]),
+            io:format("RecDataSize=~p~n", [RecDataSize]),
+            receive_dataAux(
+                Sock, ToRecv-RecDataSize, NewData);
+        {error, closed} ->
+            io:format("Error al 
+                recibir datos, Socket cerrado~n"),
+            error;
+        {error, Reason} ->
+            io:format("Error al recibir datos: ~p~n",
+                [Reason])
+    end.
+
+receive_data(Sock, ToRecv) ->
+    receive_dataAux(Sock, ToRecv, <<>>).
+
 
 aux_response(Sock, Ins, Code) ->
     case Ins of
@@ -89,7 +161,10 @@ aux_response(Sock, Ins, Code) ->
             case Code of                
                 <<?OK>> ->
                     Len = getLen(Sock),
-                    {ok, BinVal} = gen_tcp:recv(Sock, Len),
+					io:format("Len a recibir = ~p~n", [Len]),
+                    {ok, BinVal} = receive_data(Sock, Len),
+                    io:format("recibi=~p bytes~n", [byte_size(BinVal)]),
+					io:format("recibi los datos~n"),
                     Val = binary_to_term(BinVal),
                     {ok,Val};
                 _ -> showError(Code)

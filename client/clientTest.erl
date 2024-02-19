@@ -52,15 +52,15 @@ sleep(Duration) ->
 
 start_putval() ->
     Pid = client:start(localhost),
-    Str = readlines("bible_copy.txt"),
+    Str = readlines("bible.txt"),
     StrBin = term_to_binary(Str),
     io:format("~p~n", [byte_size(StrBin)]),
     put(Pid, str, Str),
-    client:close(Pid),
-		spawn_processes(500, Str).
+    client:close(Pid).
+	%spawn_processes(500, Str).
 
 start_putkey() ->
-		Pid = client:start(localhost),
+	Pid = client:start(localhost),
     Str = readlines("bible_copy.txt"),
     StrBin = term_to_binary(Str),
     io:format("~p~n", [byte_size(StrBin)]),
@@ -68,11 +68,11 @@ start_putkey() ->
     client:close(Pid).
 
 get_val() ->
-		Pid = client:start(localhost),
+	Pid = client:start(localhost),
     Str = readlines("bible_copy.txt"),
     StrBin = term_to_binary(Str),
     io:format("~p~n", [byte_size(StrBin)]),
     ToPrint = get(Pid, Str),
     client:close(Pid),
-		ToPrint.
+	ToPrint.
 
