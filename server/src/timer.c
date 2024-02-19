@@ -19,7 +19,7 @@
 #define MAX_EVENTS 10
 
 struct _Timerfd {
-  int timefd; // File del timer
+  int timefd; // File descriptor del timer
   struct User_data* ud; //File descriptor
 		// de los datos asociados al timer
 };
