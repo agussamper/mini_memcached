@@ -211,7 +211,8 @@ int readBin(User_data* ud) {
         ud->udBin->keySize = ud->udBin->bytesToRead;
       }
     }
-    if(ud->offset + READSIZE > ud->udBin->bufSize) {
+    if(1 == ud->readNext &&
+        ud->offset + READSIZE > ud->udBin->bufSize) {
       ud->udBin->bufSize *= 2;
       ud->buf = realloc_mem(ud->buf, ud->udBin->bufSize, NULL);
       assert(ud->buf);
@@ -227,7 +228,7 @@ int readBin(User_data* ud) {
         ud->udBin->kv--;
         ud->udBin->reading = 0;
         if(rc < READSIZE) { 
-          // En este caso leyó todo, con con lo
+          // En este caso leyó todo, con lo
           // cual no se necesita volver a leer 
           // del fd para leer el valor y su longitud
           ud->readNext = 0;
