@@ -15,12 +15,13 @@
 #include <sys/timerfd.h>
 #include <stdint.h>
 
-#define TIMEOUT_MS 15000 //miliseconds
+#define TIMEOUT_MS 30000 //miliseconds
 #define MAX_EVENTS 10
 
 struct _Timerfd {
-  int timefd;
-  struct User_data* ud;
+  int timefd; // File del timer
+  struct User_data* ud; //File descriptor
+		// de los datos asociados al timer
 };
 
 void timeOut(int timer_epoll,
