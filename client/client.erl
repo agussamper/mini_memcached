@@ -65,13 +65,25 @@ sendAndRecv(Sock, Packet) ->
         _ -> 
             close
     end.
-    
+
+% showError: binary() -> atom
+% Dado un código de error, devuelve
+% el átomo correspondiente
+showError(Code) ->
+    case Code of
+        <<?EINVAL>> -> einval;
+        <<?ENOTFOUND>> -> enotfound;
+        <<?EBIG>> -> ebig;
+        <<?EUNK>> -> eunk;
+        _ -> unknown_answer
+    end.            
+
 aux_response(Sock, Ins, Code) ->
     case Ins of
         put ->             
             case Code of
                 <<?OK>> -> ok;
-                _ -> {error, Code} %//TODO: traducir codigo
+                _ -> showError(Code)
             end;            
         get ->
             case Code of                
@@ -80,15 +92,12 @@ aux_response(Sock, Ins, Code) ->
                     {ok, BinVal} = gen_tcp:recv(Sock, Len),
                     Val = binary_to_term(BinVal),
                     {ok,Val};
-                <<?ENOTFOUND>> ->
-                    enotfound;
-                _ -> {error, Code}
+                _ -> showError(Code)
             end;
         del ->
             case Code of                
                 <<?OK>> -> ok;
-                <<?ENOTFOUND>> -> enotfound;
-                _ -> {error, Code}
+                _ -> showError(Code)
             end;
         stats ->            
             case Code of                
@@ -96,7 +105,7 @@ aux_response(Sock, Ins, Code) ->
                     Len = getLen(Sock),
                     {ok, BinStats} = gen_tcp:recv(Sock, Len),
                     binary_to_list(BinStats);
-                _ -> {error, Code}
+                _ -> showError(Code)
             end
     end.
 
