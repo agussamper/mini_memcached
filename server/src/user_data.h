@@ -10,15 +10,10 @@
 #define BINARY 0
 #define TEXT 1
 
-struct User_data;
-
-typedef struct Timerfd {
-  int timefd;
-  struct User_data* ud;
-} Timerfd;
+typedef struct _Timerfd* Timerfd;
 
 typedef struct User_dataBin {
-  Timerfd* tfd;
+  Timerfd tfd;
   uint64_t bufSize; // Tamaño del buffer
   uint32_t bytesToRead;
           // Contienen la longitud de la 

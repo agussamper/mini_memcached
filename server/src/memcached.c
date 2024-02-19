@@ -23,9 +23,9 @@
 #include "text_manage.h"
 #include "bin_manage.h"
 #include "user_data.h"
+#include "timer.h"
 
 #define MAX_EVENTS 10
-#define TIMEOUT_MS 15000 //miliseconds
 
 long MAX_THREADS;
 
@@ -37,28 +37,6 @@ typedef struct epoll_loop {
 	int fd_text; //File descriptor del socket de texto
 	int fd_bin;  //File descriotor del socket binario
 } epoll_loop;
-
-
-/**
- * Reinicia los datos del usuario
- * asociados a tfd, elimina tfd del
- * epoll del timer y manda al cliente
- * EINVALID
- * @param timer_epoll file descriptor de
- * epoll para los temporizadores.
- * @param tfd file descriptor de timerfd. 
-*/
-void timeOut(int timer_epoll,
-	 Timerfd* tfd) {
-	puts("TIME OUT");	
-	char c = EINVALID;
-	write(tfd->ud->fd,&c,1);
-	epoll_ctl(timer_epoll,
-	 	EPOLL_CTL_DEL, tfd->timefd,
-		NULL);
-	user_data_restart(tfd->ud);
-	free(tfd);	
-}
 
 /**
  * Setea el file descriptor de ud para que
@@ -72,69 +50,6 @@ void listenAgain(int epollfd, User_data* ud) {
 	event.events = EPOLLIN | EPOLLONESHOT;
 	epoll_ctl(epollfd, EPOLL_CTL_MOD,
 		ud->fd, &event);	
-}
-
-/**
- * Configura el timer en TIMEOUT_MS,
- * lo asocia con ud y lo agrega al epoll.
- * @param ud datos de usuario a los que
- * estará asociado el timer.
- * @param timer_epoll file descriptor del
- * epoll de los timer.
-*/
-void setTimer(User_data* ud, int timer_epoll) {
-	int timer_fd = timerfd_create(CLOCK_MONOTONIC, 0);
-  if (timer_fd == -1) {
-      perror("timerfd_create");
-      exit(EXIT_FAILURE);
-  }
-
-  // Configurar el temporizador para expirar después de TIMEOUT_MS milisegundos
-  struct itimerspec timer_spec;
-  timer_spec.it_interval.tv_sec = 0;
-  timer_spec.it_interval.tv_nsec = 0;
-  timer_spec.it_value.tv_sec = TIMEOUT_MS / 1000;
-  timer_spec.it_value.tv_nsec = (TIMEOUT_MS % 1000) * 1000000;
-  if (timerfd_settime(timer_fd, 0, &timer_spec, NULL) == -1) {
-      perror("timerfd_settime");
-      exit(EXIT_FAILURE);
-  }
-
-	// Agregar el temporizador al epoll FD
-  struct epoll_event ev;
-  ev.events = EPOLLIN;
-	Timerfd* tfd = 
-		allocate_mem(sizeof(Timerfd), NULL);
-	tfd->timefd = timer_fd;
-	tfd->ud = ud;
-  ev.data.ptr = tfd;
-  if (epoll_ctl(timer_epoll,
-		EPOLL_CTL_ADD, timer_fd, &ev) == -1) {
-      perror("epoll_ctl");
-      exit(EXIT_FAILURE);
-  }
-	ud->udBin->tfd = tfd;
-}
-
-/**
- * Elimina el timer asociados
- * a los datos de usuarios pasados
- * por argumentos del epoll de los
- * timer.
- * @param epoll file descriptor del
- * epoll de los timer.
- * @param ud datos de usuario a los
- * cuales se le quiere eliminar el
- * timer del epoll
-*/
-void timerDel(int timer_epoll,
-		User_data* ud) {
-	epoll_ctl(timer_epoll,
-	 	EPOLL_CTL_DEL, 
-		ud->udBin->tfd->timefd,
-		NULL);
-	free(ud->udBin->tfd);
-	ud->udBin->tfd = NULL;
 }
 
 /**
@@ -350,38 +265,6 @@ void* eventloop(void* arg) {
 	}
 }
 
-/**
- * Escucha los eventos del epoll de los timer,
- * cuando ocurre un evento reiniciará los datos
- * de usuario asociados y eliminará el file
- * descriptor del evento ocurrido de la
- * lista de eventos que debe notificar el
- * epoll, además liberará su memoria
- * @param epoll_timer_fd puntero a file
- * descriptor del epoll de los timer. 
- * */ 
-void* timer_epollStart(void* epoll_timer_fd) {
-	int epoll_timer = *((int*)epoll_timer_fd);
-
-	printf("epoll timer configurado\n");
-
-	struct epoll_event events[MAX_EVENTS];
-	int num_events;
-	while(1) {
-		num_events = 
-			epoll_wait(epoll_timer,
-				events, MAX_EVENTS, -1);
-		if (num_events == -1) {
-			perror("binepoll_wait");
-			exit(EXIT_FAILURE);
-		}
-		for(int i = 0; i < num_events; i++) {
-			Timerfd* tfd = 
-				(Timerfd*)events[i].data.ptr;
-			timeOut(epoll_timer, tfd);		
-		}
-	}
-}
 
 /**
  * Inicualiza el epoll, agregando en el mismo
