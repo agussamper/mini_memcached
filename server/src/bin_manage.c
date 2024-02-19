@@ -226,7 +226,10 @@ int readBin(User_data* ud) {
       } else {
         ud->udBin->kv--;
         ud->udBin->reading = 0;
-        if(rc < READSIZE) {
+        if(rc < READSIZE) { 
+          // En este caso leyó todo, con con lo
+          // cual no se necesita volver a leer 
+          // del fd para leer el valor y su longitud
           ud->readNext = 0;
         }
       }
