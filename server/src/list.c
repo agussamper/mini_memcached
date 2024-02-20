@@ -12,7 +12,10 @@ typedef struct Node {
   char* value;
   uint32_t lenKey;
   uint32_t lenVal; 
-  int isBin; 
+  int isBin; // 1 si los valores
+             // guardados en el nodo
+             // estan en binario,
+             // 0 si no
   struct Node* next;
   struct Node* prev;    
   /**
