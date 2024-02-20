@@ -71,7 +71,10 @@ void bin_consume(Cache cache , char* buf, int fd) {
 				valLen = valLen >> 8;
 			}
 			write(fd, code_len, 5);
-			write(fd, resp->value, resp->valSize);
+      uint32_t wc = 0;
+      while(wc < resp->valSize) {        
+			  wc += write(fd, resp->value, resp->valSize-wc);
+      }
 			free(resp->value);
 			free(resp);
 		}

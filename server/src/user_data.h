@@ -10,10 +10,10 @@
 #define BINARY 0
 #define TEXT 1
 
+typedef struct _Timerfd* Timerfd;
+
 typedef struct User_dataBin {
-  clock_t start; // Usado para tomar el tiempo
-    // cuando readBin retorna 1
-  
+  Timerfd tfd;
   uint64_t bufSize; // Tamaño del buffer
   uint32_t bytesToRead;
           // Contienen la longitud de la 
@@ -42,7 +42,7 @@ typedef struct User_data {
   char* buf;  
   uint64_t offset; // Posición del buffer en
           // la que estoy leyendo
-  int fd; // File descriptor
+  int fd; // File descriptor.
   char readNext; // Usado en readBin para decidir si hay
                  // que leer la entrada
                  // usado en text_manage para representar
