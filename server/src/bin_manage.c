@@ -108,7 +108,7 @@ void bin_consume(Cache cache , char* buf, int fd) {
  * dependiendo del código pasado por
  * argumentos. setea -1 si el código
  * pasado no es válido.
-
+*/
 void set_kv(User_data* ud) {
   switch (ud->buf[0]) {
   case PUT:
@@ -128,7 +128,7 @@ void set_kv(User_data* ud) {
     break;
   }
 }
-*/
+
 /**
  * Función auxiliar
  * Obtiene la longitud de la clave o del
@@ -162,84 +162,7 @@ int get_bytesToRead(User_data* ud) {
   return 0;
 }
 
-/**
- * Función auxiliar
- * Obtiene cuánto restar al offset para
- * compararlo con ud->bytesToRead en
- * readBin 
-*/
-int getRest(User_data* ud) {
-  if(ud->udBin->kv_const == 2) {
-    if(ud->udBin->kv == 2) {
-      return 5;
-    } else if(ud->udBin->kv == 1) {
-      return 9+ud->udBin->keySize;
-    } else {
-      return -1;
-    }
-  } else if(ud->udBin->kv_const == 1) {
-    return 5;
-  }
-  return -1;
-}
-
-int regularize(User_data* ud){
-  if(ud->udBin->kv == 0){
-    ud->udBin->kv_const = 0;
-    } 
-  if(ud->offset == 1){
-    ud->readNext = 1;
-  }else{
-    if(ud->udBin->kv == 1){
-      if(ud->offset > 5){
-        char buflen[4];
-        memcpy(buflen,ud->buf+1,4);
-        uint32_t aux = 0;
-        char* ptr = (char*)&aux;
-        int j = 3;
-        for(int i = 0; i < 3; i++) {
-          ptr[i] = buflen[j--];
-        }
-        ud->udBin->bytesToRead = aux;
-        ud->udBin->reading = 1;
-      }else{
-        int rc = READ(ud->fd,ud->buf+ud->offset,5-ud->offset);
-        ud->offset +=rc;
-        ud->readNext = 1;
-      }
-    }
-    else if (ud->udBin->kv == 2)
-    {
-     if(ud->offset <= 5){
-        int rc = READ(ud->fd,ud->buf+ud->offset,5-ud->offset);
-        ud->offset += rc;
-        ud->readNext = 1;
-     }else{
-        char buflen[4];
-        memcpy(buflen,ud->buf+1,4);
-        
-        uint32_t aux = 0;
-        char* ptr = (char*)&aux;
-        int j = 3;
-        for(int i = 0; i < 3; i++) {
-          ptr[i] = buflen[j--];
-        }
-        ud->udBin->keySize = aux;
-        if(ud->offset >= ud->udBin->keySize+5){
-          ud->readNext = 1;
-        }else{
-          ud->udBin->bytesToRead = ud->udBin->keySize;
-          ud->udBin->reading;
-        }
-     } 
-    }
-  }
-  return 0;
-}
-
-
 int readBin(User_data* ud) {
-  puts("reading");
   if(ud->buf == NULL) {
     ud->udBin->bufSize=2000;
     ud->buf =
@@ -258,15 +181,6 @@ int readBin(User_data* ud) {
   }
   int rc = 0;
   while(1) {
-    /*
-    if(ud->readNext == 2){
-      puts("reg\n");
-      int r = regularize(ud);
-      if(r!=1) return r;
-      if(ud->udBin->kv == 0) return 0;
-    }  
-    */
-   printf("%ld\n",ud->udBin->bytesToRead);
     if(!ud->udBin->reading) {
       int res = get_bytesToRead(ud);
       if(res != 0) {
@@ -274,31 +188,29 @@ int readBin(User_data* ud) {
       }
       ud->udBin->reading = 1;
       if(ud->udBin->kv == 2) {
-        ud->udBin->keySize = ud->udBin->bytesToRead;
+        ud->udBin->keySize
+          = ud->udBin->bytesToRead;
       }
     }
-    if(ud->offset + ud->udBin->bytesToRead > ud->udBin->bufSize) {
+    if(ud->offset + ud->udBin->bytesToRead
+        > ud->udBin->bufSize) {
       ud->udBin->bufSize *= 2;
-      ud->buf = realloc_mem(ud->buf, ud->udBin->bufSize, NULL);
+      ud->buf = realloc_mem(ud->buf,
+        ud->udBin->bufSize, NULL);
       assert(ud->buf);
     }
-   // if(ud->readNext == 1) {
-      uint64_t to_read = READSIZE<ud->udBin->bytesToRead?READSIZE:ud->udBin->bytesToRead;
-      rc = READ(ud->fd, ud->buf+ud->offset,to_read);
-      ud->offset += rc;
-      ud->udBin->bytesToRead-=rc;
-    //} 
+    uint64_t to_read = 
+      READSIZE < ud->udBin->bytesToRead?
+        READSIZE:ud->udBin->bytesToRead;
+    rc = READ(ud->fd, ud->buf+ud->offset,to_read);
+    ud->offset += rc;
+    ud->udBin->bytesToRead-=rc;
     if(ud->udBin->bytesToRead == 0) {
       if(ud->udBin->kv == 1) {
         return 0;
       } else {
         ud->udBin->kv--;
         ud->udBin->reading = 0;
-        /*
-        if(rc < READSIZE) {
-          ud->readNext = 0;
-        }
-        */
       }
     } 
   }

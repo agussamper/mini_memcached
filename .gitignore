@@ -9,3 +9,4 @@ client/client.c
 client/recibidos
 server/obj
 server/bin
+bible.txt

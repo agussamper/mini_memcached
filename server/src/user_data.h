@@ -49,7 +49,6 @@ typedef struct User_data {
                  // el maximo de EBIG permitidos
 } User_data;
 
-void set_kv(User_data* ud); 
 /**
  * Devuelve un puntero a una estrucura User_data
  * con el fd dado y el modo, inicializa
@@ -73,8 +72,6 @@ User_data* user_data_init(int fd, int mode);
  * @param ud puntero a estructura a reiniciar
 */
 User_data* user_data_restart(User_data* ud);
-
-User_data* user_data_adjust(User_data* ud);
 
 /**
  * Libera ud
