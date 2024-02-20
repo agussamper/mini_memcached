@@ -173,7 +173,6 @@ int readBin(User_data* ud) {
     ud->offset = 0;
     int rc = READ(ud->fd, ud->buf, 1);
     ud->offset+=rc;
-    ud->readNext = 1;
     ud->udBin->reading = 0;
     set_kv(ud);    
     if(ud->udBin->kv == 0 || ud->udBin->kv == -1) {

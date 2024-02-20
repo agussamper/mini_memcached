@@ -43,9 +43,7 @@ typedef struct User_data {
   uint64_t offset; // Posición del buffer en
           // la que estoy leyendo
   int fd; // File descriptor.
-  char readNext; // Usado en readBin para decidir si hay
-                 // que leer la entrada
-                 // usado en text_manage para representar
+  char readNext; // usado en text_manage para representar
                  // el maximo de EBIG permitidos
 } User_data;
 
