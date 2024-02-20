@@ -92,49 +92,6 @@ void text_handle(
 	}
 }
 
-/**
- * Función llamada cuando se detecta un pedido 
- * más grande que lo permitido por el protocolo.
- * 
- * Avanza hasta el proximo pedido.
- * 
- * Si el pedido es mas grande que 2048*MAX_FORWARD
- * retorna -1 y el cliente será desconectado.
- * 
- * Si se pudo avanzar, pero el ultimo caracter leido es \n
- * retorna 1 para que los pedidos sean prosesados.
- * 
- * Si se pudo avanzar y el último caracter no es \n,
- * retorna 0
-*/
-int ebig(User_data* ud){
-	ud->readNext++;
-	int fd = ud->fd;
-	char* buf = ud->buf;
-	uint64_t* offset = &(ud->offset);
-	int nlen = 0;
-	char* p = buf;
-	int nread = READ(fd,buf,2048);
-	while(ud->readNext < MAX_FORWARD &&
-	 (p = memchr(buf, '\n', nread)) == NULL){
-		ud->readNext++;
-		nread = READ(fd,buf,2048);
-	}
-	if(ud->readNext == MAX_FORWARD && (p == NULL || p == buf)){
-		return -1;
-	}else{
-		p++;
-		nlen = p - buf;
-		*offset = nread - nlen;
-		memmove(buf, p, *offset);
-		if(buf[nread-1] == '\n'){
-				return 1;
-		}
-		return 0;
-	}
-}
-
-
 int text_consume(Cache cache, User_data* ud){
 	int fd = ud->fd;
 	char* buf = ud->buf;
@@ -164,12 +121,7 @@ int text_consume(Cache cache, User_data* ud){
 		}
 	if(*offset == 2048){
 		write(fd,"EBIG\n",5);
-		*offset = 0;
-		int fwd = ebig(ud);
-		if(fwd == 1){
-				return text_consume(cache,ud);
-		} else return fwd;
-	
+		*offset = 0;	
 	}
 
   return 0;
