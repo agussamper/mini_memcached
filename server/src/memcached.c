@@ -127,7 +127,6 @@ void handle_binUser(int epollfd,
 */
 void handle_textUser(int epollfd, User_data* ud) {
 	if(ud->buf == NULL){
-		ud->readNext = 0;
 		ud->buf = allocate_mem(2048,NULL);
 	}
 	int res = text_consume(memcache,
