@@ -75,9 +75,9 @@ void disconnect_user(int timer_epoll ,User_data* ud) {
  * Función auxiliar de handle_user, esta
  * función se llama cuando el usuario está
  * en modo binario.
- * En caso que el paquete se envia por partes
- * si no se recibe la parte restante en 
- * 15 segundos se descarta todo lo enviado
+ * En caso que el paquete se envie por partes,
+ * si los datos esperados no lleguen en
+ * TIMEOUT_MS(timer.c), se descarta todo lo enviado
  * hasta el momento y se envía EINVALID
  * al cliente.
  * @param epollfd file desctiptor de epoll.
