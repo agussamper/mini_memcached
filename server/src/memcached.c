@@ -209,7 +209,10 @@ void user_accept(epoll_loop* eloop, int mode) {
 		printf("acceptret=%d\n", acceptret);		
 		if(acceptret == -1) {
 			int err = errno;
-			if(err == EAGAIN || err == EWOULDBLOCK) {
+			if(err == EAGAIN ||
+				 err == EWOULDBLOCK ||
+				 err == EMFILE ||
+				 err == ENFILE) {
 				return;
 			}
 			printf("error in accept4()! %s\n",
