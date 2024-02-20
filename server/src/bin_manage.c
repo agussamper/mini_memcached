@@ -239,6 +239,7 @@ int regularize(User_data* ud){
 
 
 int readBin(User_data* ud) {
+  puts("reading");
   if(ud->buf == NULL) {
     ud->udBin->bufSize=2000;
     ud->buf =
@@ -257,12 +258,15 @@ int readBin(User_data* ud) {
   }
   int rc = 0;
   while(1) {
+    /*
     if(ud->readNext == 2){
       puts("reg\n");
       int r = regularize(ud);
       if(r!=1) return r;
       if(ud->udBin->kv == 0) return 0;
     }  
+    */
+   printf("%ld\n",ud->udBin->bytesToRead);
     if(!ud->udBin->reading) {
       int res = get_bytesToRead(ud);
       if(res != 0) {
@@ -273,24 +277,28 @@ int readBin(User_data* ud) {
         ud->udBin->keySize = ud->udBin->bytesToRead;
       }
     }
-    if(ud->offset + READSIZE > ud->udBin->bufSize && ud->readNext == 1) {
+    if(ud->offset + ud->udBin->bytesToRead > ud->udBin->bufSize) {
       ud->udBin->bufSize *= 2;
       ud->buf = realloc_mem(ud->buf, ud->udBin->bufSize, NULL);
       assert(ud->buf);
     }
-    if(ud->readNext == 1) {
-      rc = READ(ud->fd, ud->buf+ud->offset, READSIZE);
+   // if(ud->readNext == 1) {
+      uint64_t to_read = READSIZE<ud->udBin->bytesToRead?READSIZE:ud->udBin->bytesToRead;
+      rc = READ(ud->fd, ud->buf+ud->offset,to_read);
       ud->offset += rc;
-    } 
-    if(ud->offset-getRest(ud) >= ud->udBin->bytesToRead) {
+      ud->udBin->bytesToRead-=rc;
+    //} 
+    if(ud->udBin->bytesToRead == 0) {
       if(ud->udBin->kv == 1) {
         return 0;
       } else {
         ud->udBin->kv--;
         ud->udBin->reading = 0;
+        /*
         if(rc < READSIZE) {
           ud->readNext = 0;
         }
+        */
       }
     } 
   }
