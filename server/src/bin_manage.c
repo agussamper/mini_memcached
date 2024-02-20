@@ -183,6 +183,61 @@ int getRest(User_data* ud) {
   return -1;
 }
 
+int regularize(User_data* ud){
+  if(ud->udBin->kv == 0){
+    ud->udBin->kv_const = 0;
+    } 
+  if(ud->offset == 1){
+    ud->readNext = 1;
+  }else{
+    if(ud->udBin->kv == 1){
+      if(ud->offset > 5){
+        char buflen[4];
+        memcpy(buflen,ud->buf+1,4);
+        uint32_t aux = 0;
+        char* ptr = (char*)&aux;
+        int j = 3;
+        for(int i = 0; i < 3; i++) {
+          ptr[i] = buflen[j--];
+        }
+        ud->udBin->bytesToRead = aux;
+        ud->udBin->reading = 1;
+      }else{
+        int rc = READ(ud->fd,ud->buf+ud->offset,5-ud->offset);
+        ud->offset +=rc;
+        ud->readNext = 1;
+      }
+    }
+    else if (ud->udBin->kv == 2)
+    {
+     if(ud->offset <= 5){
+        int rc = READ(ud->fd,ud->buf+ud->offset,5-ud->offset);
+        ud->offset += rc;
+        ud->readNext = 1;
+     }else{
+        char buflen[4];
+        memcpy(buflen,ud->buf+1,4);
+        
+        uint32_t aux = 0;
+        char* ptr = (char*)&aux;
+        int j = 3;
+        for(int i = 0; i < 3; i++) {
+          ptr[i] = buflen[j--];
+        }
+        ud->udBin->keySize = aux;
+        if(ud->offset >= ud->udBin->keySize+5){
+          ud->readNext = 1;
+        }else{
+          ud->udBin->bytesToRead = ud->udBin->keySize;
+          ud->udBin->reading;
+        }
+     } 
+    }
+  }
+  return 0;
+}
+
+
 int readBin(User_data* ud) {
   if(ud->buf == NULL) {
     ud->udBin->bufSize=2000;
@@ -201,7 +256,13 @@ int readBin(User_data* ud) {
     ud->udBin->kv_const = ud->udBin->kv;
   }
   int rc = 0;
-  while(1) {  
+  while(1) {
+    if(ud->readNext == 2){
+      puts("reg\n");
+      int r = regularize(ud);
+      if(r!=1) return r;
+      if(ud->udBin->kv == 0) return 0;
+    }  
     if(!ud->udBin->reading) {
       int res = get_bytesToRead(ud);
       if(res != 0) {

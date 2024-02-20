@@ -93,9 +93,9 @@ User_data* user_data_adjust(User_data* ud) {
   ud->udBin->keySize = 0;
   ud->udBin->prevRead = 0;
   ud->offset = dif;
-  ud->readNext = 2;
   set_kv(ud);
   ud->udBin->kv_const = ud->udBin->kv;
+  ud->readNext = 2;
   return ud;
 }
 

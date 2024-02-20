@@ -52,7 +52,7 @@ sleep(Duration) ->
 
 start_putval() ->
     Pid = client:start(localhost),
-    Str = readlines("bible_copy.txt"),
+    Str = readlines("bible.txt"),
     StrBin = term_to_binary(Str),
     io:format("~p~n", [byte_size(StrBin)]),
     put(Pid, str, Str),
