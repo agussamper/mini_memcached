@@ -74,7 +74,7 @@ int main()
 		return 0;
   }
 	uint64_t maxBytes = 1;
-	maxBytes = maxBytes << 29; //4GB
+	maxBytes = maxBytes << 29; //512MB
 	setmemlimit(maxBytes);
 	int tSock, bSock;
 	tSock = mk_lsock(888);
