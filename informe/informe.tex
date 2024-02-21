@@ -430,15 +430,9 @@ de los datos de usuario, como el buffer, el offset del mismo, etc.
 Por último le indicaremos al epoll que vuelva a agregar el file descriptor
 que estamos atendiendo a la lista de interés, es decir, que
 vuelva a notificar si sucede un evento en el file descriptor.
-\item En el caso que falta una parte del mismo se inicia
-un temporizador, el cual dará un tiempo de tolerancia
-de a lo sumo 30 segundos para que el resto del paquete llegue,
-en caso de que no llegue reiniciaremos algunos datos del usuario
-descartando lo guardado anteriormente y contestaremos al usuario
-con el código de EINVAL. En caso de que no se hayan superado
-los 30 segundos  y se haya podido leer todo el paquete 
-configuraremos el epoll para que el mismo vuelva
-a notificar sobre eventos en ese file descriptor.
+\item En el caso que falta una parte del mismo le indicaremos al epoll que vuelva a agregar el file descriptor
+que estamos atendiendo a la lista de interés, es decir, que
+vuelva a notificar si sucede un evento en el file descriptor.
 \item En caso que haya un error desconectaremos el usuario
 borrando todos sus datos.
 \end{itemize}
@@ -479,7 +473,6 @@ User\textunderscore dataBin:
 
 \begin{lstlisting}[style=CStyle]
     typedef struct User_dataBin {
-  Timerfd tfd;
   uint64_t bufSize; // Tamano del buffer
   uint32_t bytesToRead;
           // Contienen la longitud de la 
@@ -495,9 +488,6 @@ User\textunderscore dataBin:
           // ser constante 
   char reading; // 1 si esta leyendo una clave
                 // o valor, 0 en caso contrario 
-  
-  char prevRead; // Guarda lo ultimo retornado por
-                // por readBin
 } User_dataBin;
 \end{lstlisting}
 Explicaremos con mas detalle estos campos en la sección \ref{sec:bin}
@@ -547,34 +537,6 @@ memcached.c.
 
 \subsubsection{bin\textunderscore consume()}
 Responde a la consulta al cliente
-
-\subsection{timer.c/.h}
-En estos archivos se encuentra lo relacionado al temporizado
-para la espera de paquetes.
-
-Aquí usamos un epoll para gestionar los eventos de los
-temporizadores. Cuando los temporizadores llegan a
-0, estos generan un evento, luego epoll es notificado
-y aquí es donde reinciamos los datos del usuario como
-se explicó en handle\textunderscore user.
-
-La estructura utilizada en el epoll para guardar el
-file descriptor del temporizador y los datos que
-necesitamos es la siguiente
-
-\begin{lstlisting}[style=CStyle]
-struct _Timerfd {
-  int timefd; // File descriptor del timer
-  struct User_data* ud; //Puntero a 
-			//datos de usuario
-		 	//asociados al timer
-};
-\end{lstlisting}
-
-como se indica en los comentarios timefd es el file
-descriptor del timer y ud son los datos de usuario
-asociados al timer. Tener el campo ud nos sirve para poder
-modificar los mismo cuando recibimo el evento del timer.
 
 \section{Cliente}
 El cliente está implementado en erlang y es útil para facilitar el uso del modo binario de la memcached.
