@@ -7,8 +7,6 @@
 #include "text_manage.h"
 #include "parser.h"
 
-#define MAX_FORWARD 11
-
 /*
  * Dado un pedido tokenizado lo atiende,
  * respondiendo en el file descriptor fd,

@@ -39,7 +39,7 @@ typedef struct User_data {
     // para usuario en modo binario, además
     // si su valor es NULL indica que está en
     // modo texto 
-  char* buf;  
+  char* buf; //buffer en donde guardamos lo leído  
   uint64_t offset; // Posición del buffer en
           // la que estoy leyendo
   int fd; // File descriptor.
