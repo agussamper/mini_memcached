@@ -19,8 +19,6 @@ User_data* user_data_init(int fd, int mode) {
     User_dataBin* udBin =
       allocate_mem(sizeof(User_dataBin), NULL);
     ud->udBin = udBin;
-    ud->udBin->prevRead = 0;
-    ud->udBin->tfd = NULL;
   } else {
     ud->udBin = NULL;
   }
@@ -38,8 +36,6 @@ User_data* user_data_restart(User_data* ud) {
     ud->udBin->reading = 0;
     ud->udBin->bytesToRead = 0;
     ud->udBin->keySize = 0;
-    ud->udBin->prevRead = 0;
-    ud->udBin->tfd = NULL;
   }
   return ud;
 }

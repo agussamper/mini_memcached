@@ -23,7 +23,6 @@
 #include "text_manage.h"
 #include "bin_manage.h"
 #include "user_data.h"
-#include "timer.h"
 
 #define MAX_EVENTS 10
 
@@ -33,7 +32,6 @@ Cache memcache;
 
 typedef struct epoll_loop {
 	int epollfd; //File descriptor de epoll
-	int epoll_timer; //File descriptor de epoll para timer
 	int fd_text; //File descriptor del socket de texto
 	int fd_bin;  //File descriotor del socket binario
 } epoll_loop;
@@ -55,18 +53,12 @@ void listenAgain(int epollfd, User_data* ud) {
 /**
  * Cierra la conexión de un usuario, también
  * elimina sus datos
- * @param timer_epoll sirve para eliminar el
- * timer asociado en caso de que exista.
  * @param ud Datos del usuario a eliminar.
 */
-void disconnect_user(int timer_epoll ,User_data* ud) {
-	if(timer_epoll != -1 &&
-			ud->udBin->prevRead == 1) {
-		timerDel(timer_epoll, ud);
-	}
-	close(ud->fd);
+void disconnect_user(User_data* ud) {	
 	epoll_ctl(ud->fd, EPOLL_CTL_DEL,
 		ud->fd, NULL);
+	close(ud->fd);
 	user_data_destroy(ud);
 	puts("usuario desconectado");		
 }
@@ -75,29 +67,18 @@ void disconnect_user(int timer_epoll ,User_data* ud) {
  * Función auxiliar de handle_user, esta
  * función se llama cuando el usuario está
  * en modo binario.
- * En caso que el paquete se envie por partes,
- * si los datos esperados no lleguen en
- * TIMEOUT_MS(timer.c), se descarta todo lo enviado
- * hasta el momento y se envía EINVALID
- * al cliente.
  * @param epollfd file desctiptor de epoll.
  * @param ud puntero a estructura con
  * datos del usuario.
- * @param timer_epoll epoll de los timer
- * para el manejo de los mismos
 */
 void handle_binUser(int epollfd, 
-		User_data* ud, int timer_epoll) {
+		User_data* ud) {
 	int readRet = readBin(ud);
 	if(-1 == readRet) {
-		disconnect_user(timer_epoll, ud);
+		disconnect_user(ud);
 		return;
 	}
 	if(0 == readRet) {
-		if(1 == ud->udBin->prevRead) {
-			timerDel(timer_epoll, ud);
-		}
-		ud->udBin->prevRead = 0; 		
 		bin_consume(memcache, 
 			ud->buf, ud->fd);
 		user_data_restart(ud);
@@ -105,10 +86,6 @@ void handle_binUser(int epollfd,
 		return;
 	}
 	if(1 == readRet) {
-		if(0 == ud->udBin->prevRead) {
-			ud->udBin->prevRead = 1;
-			setTimer(ud, timer_epoll);	
-		}
 		listenAgain(epollfd, ud);
 		return;				
 	}
@@ -132,7 +109,7 @@ void handle_textUser(int epollfd, User_data* ud) {
 	int res = text_consume(memcache,
 		ud);
 	if(res == -1) {
-		disconnect_user(-1, ud);
+		disconnect_user(ud);
 		return;
 	} else {
 		listenAgain(epollfd, ud);
@@ -157,9 +134,9 @@ void handle_textUser(int epollfd, User_data* ud) {
  * @param ud puntero a estructura con
  * datos del usuario.
 */
-void handle_user(int epollfd, int timer_epoll, User_data* ud) {
+void handle_user(int epollfd, User_data* ud) {
 	if(ud->udBin != NULL)
-		handle_binUser(epollfd, ud, timer_epoll);
+		handle_binUser(epollfd, ud);
 	else
 		handle_textUser(epollfd, ud);
 }
@@ -259,8 +236,7 @@ void* eventloop(void* arg) {
 				user_accept(eloop, TEXT);
 			} else {
 				//puts("manejo peticion");
- 				handle_user(eloop->epollfd, 
-					eloop->epoll_timer, ud);
+ 				handle_user(eloop->epollfd, ud);
 				//puts("peticion manejada");
 			}
 		}
@@ -277,12 +253,6 @@ void* eventloop(void* arg) {
  * @param bsock Socket de escucha para modo binario
 */
 void epoll_start(int binsock, int textsock){
-
-	int epoll_timer = epoll_create1(0);
-	pthread_t timerThread;
-	pthread_create(&timerThread, NULL,
-			timer_epollStart, (void*)&epoll_timer);
-
 	setnonblocking(binsock);
 	setnonblocking(textsock);
 	int epoll_fd = epoll_create1(0);
@@ -291,7 +261,6 @@ void epoll_start(int binsock, int textsock){
 	
 	epoll_loop eloop;
 	eloop.epollfd = epoll_fd;
-	eloop.epoll_timer = epoll_timer;
 	eloop.fd_bin = binsock;
 	eloop.fd_text = textsock;	
 	
@@ -311,7 +280,6 @@ void epoll_start(int binsock, int textsock){
 			eventloop, (void*) &eloop);
 	}	
 
-	pthread_join(timerThread,NULL);
 	for (long i = 0; i < MAX_THREADS; i++) {
 		pthread_join(threads[i],NULL);
 	}
