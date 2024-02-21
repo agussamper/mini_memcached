@@ -13,7 +13,6 @@
 typedef struct _Timerfd* Timerfd;
 
 typedef struct User_dataBin {
-  Timerfd tfd;
   uint64_t bufSize; // Tamaño del buffer
   uint32_t bytesToRead;
           // Contienen la longitud de la 
@@ -29,9 +28,6 @@ typedef struct User_dataBin {
           // ser constante 
   char reading; // 1 si esta leyendo una clave
                 // o valor, 0 en caso contrario 
-  
-  char prevRead; // Guarda lo último retornado por
-                // por readBin
 } User_dataBin;
 
 typedef struct User_data {  

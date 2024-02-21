@@ -9,8 +9,7 @@ $(OBJS_DIR)/common.o $(OBJS_DIR)/evict.o \
 $(OBJS_DIR)/list.o $(OBJS_DIR)/malloc_interface.o \
 $(OBJS_DIR)/memcached.o $(OBJS_DIR)/parser.o \
 $(OBJS_DIR)/stats.o $(OBJS_DIR)/run.o \
-$(OBJS_DIR)/text_manage.o $(OBJS_DIR)/user_data.o \
-$(OBJS_DIR)/timer.o
+$(OBJS_DIR)/text_manage.o $(OBJS_DIR)/user_data.o
 
 $(TARGET): $(OBJS)
 	mkdir -p $(BIN_DIR)
