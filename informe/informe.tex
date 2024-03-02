@@ -351,15 +351,7 @@ de escucha al epoll inicializamos para cada file descriptor
 una estructura del tipo User\textunderscore data, esta 
 estructura sirve para guardar el file descriptor y otros
 datos del usuario, esta estructura está descrita en
-la sección 3.3
-
-Además de crear el epoll que se va a encargar de los eventos
-en los sockets, también creamos un epoll que se va a encargar
-de eventos en temporizadores, estos temporizadores, nos sirven
-para detectar cuando un paquete esperado no llega, enviar
-al cliente que su solicitud no pude ser atendida y reiniciar
-los datos del usuario, con esto logramos liberar datos
-que no son de utilidad.
+la sección 2.3
 
 \subsubsection{eventloop()}
 En esta función se manejan los eventos notificados por epoll,
