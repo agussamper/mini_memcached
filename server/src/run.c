@@ -66,6 +66,21 @@ void setmemlimit(uint64_t bytes) {
   setrlimit(RLIMIT_AS, &memlimit);
 }
 
+void lower_privileges() {
+	char* uid_str = getenv("SUDO_UID");
+	if (uid_str == NULL) {
+    fprintf(stderr, 
+			"The UID enviroment variable is not defined.\n");
+    exit(EXIT_FAILURE);
+  }
+	uid_t uid = atoi(uid_str);
+	printf("original uid=%u\n",uid);
+	if(setuid(uid) == -1) {
+		perror("Error al cambiar el ID de usuario efectivo");
+    exit(EXIT_FAILURE);
+	}
+}
+
 int main()
 {
 	uid_t uid = getuid();
@@ -79,7 +94,7 @@ int main()
 	int tSock, bSock;
 	tSock = mk_lsock(888);
   bSock = mk_lsock(889);
-	setuid(1000);
+	lower_privileges();
 	memcached_start(tSock,bSock);
 	return 0;
 }
