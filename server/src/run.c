@@ -74,9 +74,8 @@ void lower_privileges() {
     exit(EXIT_FAILURE);
   }
 	uid_t uid = atoi(uid_str);
-	printf("original uid=%u\n",uid);
 	if(setuid(uid) == -1) {
-		perror("Error al cambiar el ID de usuario efectivo");
+		perror("Error changing effective user ID");
     exit(EXIT_FAILURE);
 	}
 }

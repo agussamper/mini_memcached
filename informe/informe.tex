@@ -249,10 +249,10 @@ Hacemos la lista doblemente enlazado para que la
 eliminación de nodos se pueda hacer en O(1).
 
 Cuando se necesita eliminar un elemento de evict
-se toma el mutex y se intenta eliminar el más recientemente
+se toma el mutex y se intenta eliminar el menos recientemente
 usado, si no es posible, lo cual podría ocurrir porque
 el mutex de el elemento está tomado se intenta eliminar el 
-siguiente elemento más recientemente usado y así sucesivamente,
+siguiente elemento menos recientemente usado y así sucesivamente,
 esto lo hacemos 10 veces y volvemos a empezar, hasta que
 consigamos el espacio solicitado o la caché esté vacía.
 
